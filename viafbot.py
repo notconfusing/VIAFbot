@@ -5,7 +5,7 @@
 # requires that pywikipediabot modules be in your PYTHONPATH
 import sys
 from wikipedia import *
-from add_text import *
+
  
 # global variables
 enwp = getSite('en','wikipedia')
@@ -23,12 +23,12 @@ def pageValidate(nameOfPage,maximumDepth):
     Or returns None if the page does not exist"""
     lastPossible = nameOfPage
     for i in range(1,maximumDepth):
-        newPossible = pageValidator(nameOfPage)
+        newPossible = pageValidator(lastPossible)
         if (str(newPossible) == str(lastPossible)):
-            print newPossible
+            return newPossible
         elif newPossible == None:
                 return None
-        lastPossible = newPossible
+        lastPossible = str(newPossible)
     print("For article " + nameOfPage + "there are more than " + str(maximumDepth) +"redirects")
  
 def pageValidator(nameOfPage): #TODO handle mutliple redirects
@@ -57,14 +57,13 @@ def determineAuthorityControlTemplate(nameOfPage):
             return 'templateNoVIAF'
     return 'noACtemplate'
 
-print pageValidate('Mayakovsky',5)
-
+print pageValidate('User:VIAFbot/redir2',5) #TODO check double redirects
 #the main loop
 
 for wikilink in wikilinks:
     wikilink = wikilink.split() #to get the line into a list of (name, viafnum)
     unvalidatedPageName = wikilink[0]
-    validatedPage = pageValidate(unvalidatedPageName,5) #TODO handle None return 
+    validatedPage = pageValidate(unvalidatedPageName,20) #TODO handle None return 
     ACstatus = determineAuthorityControlTemplate(validatedPage)
     Germanstatus = determineAuthorityControlTemplateGerman(validatedPage)
     writeToWiki(ACstatus, Germanstatus)
