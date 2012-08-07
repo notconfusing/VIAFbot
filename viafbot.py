@@ -23,49 +23,58 @@ def pageValidate(nameOfPage,maximumDepth):
     Or returns None if the page does not exist"""
     lastPossible = nameOfPage
     for i in range(1,maximumDepth):
-        newPossible = pageValidator(lastPossible)
-        if (str(newPossible) == str(lastPossible)):
-            return newPossible
-        elif newPossible == None:
-                return None
+        try: 
+            newPossible = pageValidator(lastPossible)
+            if (str(newPossible) == str(lastPossible)):
+                return newPossible
+        except NoPage:
+            raise NoPage
         lastPossible = str(newPossible)
-    print("For article " + nameOfPage + "there are more than " + str(maximumDepth) +"redirects")
+    raise NoPage
  
 def pageValidator(nameOfPage): #TODO handle mutliple redirects
     """returns a string of either the page or it's redirect (does not check double redirects).  
-    Or returns None if the page does not exist"""
+    Raises NoPage exception if page does not exist"""
     namepage = Page(enwp, nameOfPage)
     try:
         namepage.get()
     except IsRedirectPage, redirPageName:
         return redirPageName
-    except NoPage, errorlist:
-        return None
+    except NoPage:
+        raise NoPage
     else:
         return nameOfPage
         
-def determineAuthorityControlTemplate(nameOfPage):
+def determineAuthorityControlTemplate(nameOfPage, site):
     """returns 'noACtemplate' if no Authority Control Template, 'templateNoVIAF' if AC template but no VIAF number, 
     and returns the viaf number if it exists"""
-    namepage = Page(enwp,nameOfPage)
+    namepage = Page(site,nameOfPage)
     templates = namepage.templatesWithParams()
+    if site == enwp:
+        targetTem = 'AuthorityControl'
+    else:
+        targetTem = 'Normdaten'
     for template in templates:
-        if template[0] == 'Authority control':
+        if template[0] == targetTem:
             for param in template[1]:
                 if param[:4] == 'VIAF':
                     return param[5:]
             return 'templateNoVIAF'
     return 'noACtemplate'
 
-print pageValidate('User:VIAFbot/redir2',5) #TODO check double redirects
+
 #the main loop
 
 for wikilink in wikilinks:
     wikilink = wikilink.split() #to get the line into a list of (name, viafnum)
     unvalidatedPageName = wikilink[0]
-    validatedPage = pageValidate(unvalidatedPageName,20) #TODO handle None return 
-    ACstatus = determineAuthorityControlTemplate(validatedPage)
-    Germanstatus = determineAuthorityControlTemplateGerman(validatedPage)
+    try:
+        validatedPage = pageValidate(unvalidatedPageName,20) #It's possible that the page doesn't exist
+    except NoPage:
+        viafbotrun.write(unvalidatedPageName + "did not exist, or redirected more than 20 times")
+        continue #If the page doesn't exist, then we don't need to write anything to the Wiki.
+    ACstatus = determineAuthorityControlTemplate(validatedPage, enwp)
+    Germanstatus = determineAuthorityControlTemplate(validatedPage, dewp)
     writeToWiki(ACstatus, Germanstatus)
     writeToLog()
     
