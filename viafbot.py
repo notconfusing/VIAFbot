@@ -12,11 +12,26 @@ enwp = getSite('en','wikipedia')
 dewp = getSite('de','wikipedia')
 wikilinks = open("wikilinksforbot.out")
 wikilinks = wikilinks.readlines()
+wikilinks = wikilinks.split()
 viafbotrun = ("viafbotrun.log", 'w+')
+same = 0
+total = 0
+nopage = 0
 
 
-#helper methods
-def pageValidator(nameOfPage):
+def pageValidate(nameOfPage,maximumDepth):
+     """returns a string of either the page or it's redirect (upto maxmimDepth).  
+    Or returns None if the page does not exist"""
+    lastPossible = nameOfpage
+        for i in range(1,maximumDepth)
+            newPossible = pageValidator(nameOfPage)
+            if (newPossible == lastPossible):
+                return possibleName
+            elif possibleName == None
+                return None
+        print("For article " + nameOfPage + "there are more than " + str(maximumDepth) +"redirects")
+ 
+def pageValidator(nameOfPage): #TODO handle mutliple redirects
     """returns a string of either the page or it's redirect (does not check double redirects).  
     Or returns None if the page does not exist"""
     namepage = Page(enwp, nameOfPage)
@@ -44,13 +59,15 @@ def determineAuthorityControlTemplate(nameOfPage):
 
 
 #the main loop
-same = 0
-total = 0
-nopage = 0
-linkvalidity = open('wikilinkvalidity.txt', 'w+')
-linkvalidity.write('total,same, nopage' + '\n')
+
 for wikilink in wikilinks:
-    wikilink = wikilink.split()
+    unvalidatedPageName = wikilink[0]
+    validatedPage = pageValidate(unvalidatedPageName,5) #TODO handle None return 
+    ACstatus = determineAuthorityControlTemplate(validatedPage)
+    Germanstatus = determineAuthorityControlTemplateGerman(validatedPage)
+    writeToWiki(ACstatus, Germanstatus)
+    writeToLog()
+    
     origNameOfPage = wikilink[0]
     afternameOfPage = pageValidator(origNameOfPage)
     print origNameOfPage, afternameOfPage
