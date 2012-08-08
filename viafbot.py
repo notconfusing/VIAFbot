@@ -18,32 +18,19 @@ total = 0
 nopage = 0
 
 
-def pageValidate(nameOfPage,maximumDepth):
-    """returns a string of either the page or it's redirect (upto maxmimDepth).  
-    Or returns None if the page does not exist"""
-    lastPossible = nameOfPage
-    for i in range(1,maximumDepth):
-        try: 
-            newPossible = pageValidator(lastPossible)
-            if (str(newPossible) == str(lastPossible)):
-                return newPossible
+def pageValidate(nameOfPage):
+    """accepts string of page name in EnglishWikipedia. 
+    returns a Page Object of either the page or it's redirect (upto 10 redirects).
+    raises NoPage exception if the page does not exist"""
+    possiblePage = Page(enwp,nameOfPage)
+    for i in range(1,10):
+        try:
+            possiblePage.get()
+            return possiblePage
+        except IsRedirectPage, redirPageName:
+            possiblePage = Page(enwp,str(redirPageName))
         except NoPage:
             raise NoPage
-        lastPossible = str(newPossible)
-    raise NoPage
- 
-def pageValidator(nameOfPage): #TODO handle mutliple redirects
-    """returns a string of either the page or it's redirect (does not check double redirects).  
-    Raises NoPage exception if page does not exist"""
-    namepage = Page(enwp, nameOfPage)
-    try:
-        namepage.get()
-    except IsRedirectPage, redirPageName:
-        return redirPageName
-    except NoPage:
-        raise NoPage
-    else:
-        return nameOfPage
         
 def determineAuthorityControlTemplate(nameOfPage, site):
     """returns 'noACtemplate' if no Authority Control Template, 'templateNoVIAF' if AC template but no VIAF number, 
@@ -62,20 +49,34 @@ def determineAuthorityControlTemplate(nameOfPage, site):
             return 'templateNoVIAF'
     return 'noACtemplate'
 
+def getGermanName(nameOfPage):
+    """returns a strng which is the equivalent German Wikipedia page to argument
+    raises NoPage if there is no German equivalent."""
+    namepage = Page(enwp,nameOfPage)
+    interWikis = namepage.get().getLanguageLinks # is this second call to namepage.get() too much io?
+
+
+
+print pageValidate('Mayakovsky')
+print pageValidate('User:VIAFbot/redir2')
 
 #the main loop
-
 for wikilink in wikilinks:
     wikilink = wikilink.split() #to get the line into a list of (name, viafnum)
     unvalidatedPageName = wikilink[0]
     try:
-        validatedPage = pageValidate(unvalidatedPageName,20) #It's possible that the page doesn't exist
+        validatedPage = pageValidate(unvalidatedPageName) #It's possible that the page doesn't exist
     except NoPage:
-        viafbotrun.write(unvalidatedPageName + "did not exist, or redirected more than 20 times")
-        continue #If the page doesn't exist, then we don't need to write anything to the Wiki.
+        viafbotrun.write(unvalidatedPageName.title() + "did not exist, or redirected more than 20 times")
+        continue  #If the page doesn't exist, then we don't need to write anything to the Wiki.
+    
+    #get statuses of Authority Control and Normdaten templates
     ACstatus = determineAuthorityControlTemplate(validatedPage, enwp)
-    Germanstatus = determineAuthorityControlTemplate(validatedPage, dewp)
-    writeToWiki(ACstatus, Germanstatus)
+    germanName = getGermanName(validatedPage)
+    germanACstatus = determineAuthorityControlTemplate(validatedPage, dewp)
+    
+    
+    writeToWiki(ACstatus, germanACstatus)
     writeToLog()
     
     origNameOfPage = wikilink[0]
