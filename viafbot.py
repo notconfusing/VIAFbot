@@ -32,38 +32,48 @@ def pageValidate(nameOfPage):
         except NoPage:
             raise NoPage
         
-def determineAuthorityControlTemplate(nameOfPage, site):
+def determineAuthorityControlTemplate(pageObject):
     """returns 'noACtemplate' if no Authority Control Template, 'templateNoVIAF' if AC template but no VIAF number, 
     and returns the viaf number if it exists"""
-    namepage = Page(site,nameOfPage)
-    templates = namepage.templatesWithParams()
-    if site == enwp:
-        targetTem = 'AuthorityControl'
-    else:
-        targetTem = 'Normdaten'
+    templates = pageObject.templatesWithParams()
     for template in templates:
-        if template[0] == targetTem:
+        if template[0] == 'Authority control':
             for param in template[1]:
                 if param[:4] == 'VIAF':
                     return param[5:]
             return 'templateNoVIAF'
     return 'noACtemplate'
 
-def getGermanName(nameOfPage):
-    """returns a strng which is the equivalent German Wikipedia page to argument
+def determineNormdatenTemplate(pageObject):
+    """returns 'noNormdatenTemplate' if no Normdaten Template, 'templateNoVIAF' if Normdaten template but no VIAF number, 
+    and returns the viaf number if it exists"""
+    templates = pageObject.templatesWithParams()
+    for template in templates:
+        if template[0] == 'Normdaten':
+            for param in template[1]:
+                if param[:4] == 'VIAF':
+                    return param[5:]
+            return 'templateNoVIAF'
+    return 'noNormdatenTemplate'
+
+def getGermanName(pageObject):
+    """returns a Page object which is the equivalent German Wikipedia page to argument
     raises NoPage if there is no German equivalent."""
-    namepage = Page(enwp,nameOfPage)
-    interWikis = namepage.get().getLanguageLinks # is this second call to namepage.get() too much io?
+    pageText = pageObject.get()
+    interWikis = getLanguageLinks(pageText)
+    try:
+        return interWikis[dewp]
+    except KeyError:
+        raise NoPage
 
-
-
-print pageValidate('Mayakovsky')
-print pageValidate('User:VIAFbot/redir2')
+print determineNormdatenTemplate(getGermanName(Page(enwp,'Oscar Wilde')))
+print determineAuthorityControlTemplate(Page(enwp,'Oscar Wilde'))
 
 #the main loop
 for wikilink in wikilinks:
     wikilink = wikilink.split() #to get the line into a list of (name, viafnum)
     unvalidatedPageName = wikilink[0]
+    
     try:
         validatedPage = pageValidate(unvalidatedPageName) #It's possible that the page doesn't exist
     except NoPage:
@@ -71,12 +81,20 @@ for wikilink in wikilinks:
         continue  #If the page doesn't exist, then we don't need to write anything to the Wiki.
     
     #get statuses of Authority Control and Normdaten templates
-    ACstatus = determineAuthorityControlTemplate(validatedPage, enwp)
-    germanName = getGermanName(validatedPage)
-    germanACstatus = determineAuthorityControlTemplate(validatedPage, dewp)
+    acStatus = determineAuthorityControlTemplate(validatedPage)
+    try:
+        germanPageName = getGermanName(validatedPage)
+    except NoPage: #There was no German equivalent page
+        germanPageName = None
+        viafbotrun.write('No German equivalent')
+    if germanPageName: #Only need to get NormdatenStaus if a German equivalent page exists.
+        normdatenStatus = determineNormdatenTemplate(germanPageName)
+    else:
+        normdatenStatus = 'noACtemplate' #if there's no page there's also noACtemplate either
+
     
     
-    writeToWiki(ACstatus, germanACstatus)
+    writeToWiki(acStatus, normdatenStatus)
     writeToLog()
     
     origNameOfPage = wikilink[0]
