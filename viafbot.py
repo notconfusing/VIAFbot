@@ -5,7 +5,8 @@
 # requires that pywikipediabot modules be in your PYTHONPATH
 import sys
 from wikipedia import *
-
+from add_text import * #for method writeEntireTemplate
+from replace import * #for method writeVIAFaramOnly
  
 # global variables
 enwp = getSite('en','wikipedia')
@@ -65,6 +66,66 @@ def getGermanName(pageObject):
         return interWikis[dewp]
     except KeyError:
         raise NoPage
+    
+def writeToWiki(validatedPage, acStatus, normdatenStatus):
+    """Writes viafnum or reports viafnum conflicts to or about validatedPage"""
+    if (normdatenStatus == 'noNormdatenTemplate') or (normdatenStatus == 'templateNoVIAF'):
+        #Germans could use this data, but that's another project.
+        if acStatus == 'noACtempate':
+            writeEntireTemplate(validatedPage, viafnum)
+        elif acStatus == 'templateNoVIAF':
+            writeVIAFparamOnly(validatedPage,viafnum)
+        elif type(acStatus)==int:
+            pass
+            #check and report
+    elif type(normdatenStatus)==int:
+        if acStatus == 'noACtempate':
+            if acStatus == normdatenStatus:
+                writeEntireTemplate(validatedPage, viafnum)
+            else:
+                pass#report
+        elif acStatus == 'templateNoVIAF':
+            if viafnum == normdatenStatus: #so there is a english template and viafnum agrees with dewp
+                writeVIAFparamOnly(validatedPage,viafnum)
+            else:
+                pass#report
+        elif type(acStatus)==int:
+            if acStatus == normdatenStatus:
+                pass#report
+            else:
+                pass#report
+    else:
+        raise Error
+
+def writeEntireTemplate(validatedPage, viafnum):
+    """Uses add_text.py to add the wikitext of
+     {{Authority control}} template with the VIAF parameter"""
+    ACtemplateWithVIAF = '\n{{Authority control|VIAF=' + str(viafnum) + '}}\n'
+    editSummary = 'Added the {{Authority control}} template with VIAF number ' + str(viafnum) + '.'
+    add_text(page = validatedPage, 
+             addText = ACtemplateWithVIAF, 
+             always = True, #so add_text won't ask for confirmation
+             summary = editSummary)
+
+def writeVIAFparamOnly(validatedPage,viafnum):
+    """Instantiates and runs replace.py's ReplaceRobot class"""
+    preloadingGen = [validatedPage]
+    replacements = [('{{Authority control' , '{{Authority control|VIAF=' + str(viafnum) + '|')]
+    editSummary = 'Adding VIAF parameter to Authority control with VIAF number ' + str(viafnum)
+    exceptions = []
+    acceptall = True
+    allowoverlap = False
+    recursive = False
+    add_cat = None
+    sleep = None
+    titlefile = None
+    excoutfile = None
+    replaceBot = ReplaceRobot(preloadingGen, replacements, exceptions, acceptall,
+                       allowoverlap, recursive, add_cat, sleep, editSummary,
+                       titlefile, excoutfile)
+    replaceBot.run()
+
+writeVIAFparamOnly(Page(enwp,'User:VIAFbot/empty'),123456789)
 
 print determineNormdatenTemplate(getGermanName(Page(enwp,'Oscar Wilde')))
 print determineAuthorityControlTemplate(Page(enwp,'Oscar Wilde'))
@@ -73,7 +134,7 @@ print determineAuthorityControlTemplate(Page(enwp,'Oscar Wilde'))
 for wikilink in wikilinks:
     wikilink = wikilink.split() #to get the line into a list of (name, viafnum)
     unvalidatedPageName = wikilink[0]
-    
+    viafnum = wikilink[1]
     try:
         validatedPage = pageValidate(unvalidatedPageName) #It's possible that the page doesn't exist
     except NoPage:
@@ -90,11 +151,14 @@ for wikilink in wikilinks:
     if germanPageName: #Only need to get NormdatenStaus if a German equivalent page exists.
         normdatenStatus = determineNormdatenTemplate(germanPageName)
     else:
-        normdatenStatus = 'noACtemplate' #if there's no page there's also noACtemplate either
+        normdatenStatus = 'noNormdatenTemplate' #if there's no page there's also noACtemplate either
 
+    try:
+        writeToWiki(validatedPage, acStatus, normdatenStatus)
+    except Error:
+        viafbotrun.write("Drastic. AC or Normdaten did not have one of the supposed 3 statuses (no,yesnoviaf,yeswithviaf)")
     
     
-    writeToWiki(acStatus, normdatenStatus)
     writeToLog()
     
     origNameOfPage = wikilink[0]
