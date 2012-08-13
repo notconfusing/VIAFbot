@@ -11,12 +11,13 @@ from replace import * #for method writeVIAFaramOnly
 # global variables
 enwp = getSite('en','wikipedia')
 dewp = getSite('de','wikipedia')
-wikilinks = open("wikilinksforbot.out")
-wikilinks = wikilinks.readlines()
+wikilinksfile = open("wikilinksforbot.out")
+wikilinks = wikilinksfile.readlines()
 viafbotrun = ("viafbotrun.log", 'w+')
 same = 0
 total = 0
 nopage = 0
+fake = True #use to make mockwriting to userspace instead of articlespace
 
 
 def pageValidate(nameOfPage):
@@ -68,38 +69,118 @@ def getGermanName(pageObject):
         raise NoPage
     
 def writeToWiki(validatedPage, acStatus, normdatenStatus):
-    """Writes viafnum or reports viafnum conflicts to or about validatedPage"""
+    """13 case switch that Writes viafnum or reports viafnum conflicts to or about validatedPage.
+    Key 
+    nd - normdaten; ac - authority control; vl - viaf->wikipedia link number
+    (xx) - template does not exist; |xx| - has template but no viaf parameter; |(xx)| -> (xx) or |xx|
+    
+    1 - |(nd)|, (ac)
+        VIAF parameter written.
+    2 - |(nd)|, |ac| 
+        VIAF parameter written.
+    3 - |(nd)|, ac == vl 
+        No writing necessary.
+    4 - |(nd)|, ac != vl 
+        Requires human attention. Nothing written.
+    5 - nd , (ac), nd == vl.
+        VIAF parameter written.
+    6 - nd, (ac), nd != vl.
+        Requires human attention. Nothing Written.
+    7 - nd, |ac|, nd == vl.
+        VIAF parameter written.
+    8 - nd, |ac|, nd != vl.
+        Requires human attention.
+    9 - nd, ac , nd == ac == vl.
+        No writing necessary.
+    10- nd, ac, nd == ac != vl.
+        Requires human attention. Nothing written.
+    11- nd, ac, nd != ac, nd == vl.
+        Requires human attention. Nothing written.
+    12- nd, ac, nd != ac, ac == vl.
+        Requires human attention. Nothing written.
+    13- nd, ac, nd != ac != vl.
+        Requires human attention. Nothing written."""
+        
     if (normdatenStatus == 'noNormdatenTemplate') or (normdatenStatus == 'templateNoVIAF'):
-        #Germans could use this data, but that's another project.
         if acStatus == 'noACtempate':
+            #no normdaten template, no ac template
             writeEntireTemplate(validatedPage, viafnum)
+            logOnWiki(1)
         elif acStatus == 'templateNoVIAF':
             writeVIAFparamOnly(validatedPage,viafnum)
+            logOnWiki(2)
         elif type(acStatus)==int:
-            pass
-            #check and report
+            if viafnum == acStatus:
+                logOnWiki(3)
+            else:
+                logOnWiki(4)
     elif type(normdatenStatus)==int:
         if acStatus == 'noACtempate':
             if acStatus == normdatenStatus:
                 writeEntireTemplate(validatedPage, viafnum)
+                logOnWiki(5)
             else:
-                pass#report
+                logOnWiki(6)
         elif acStatus == 'templateNoVIAF':
             if viafnum == normdatenStatus: #so there is a english template and viafnum agrees with dewp
                 writeVIAFparamOnly(validatedPage,viafnum)
+                logOnWiki(7)
             else:
-                pass#report
+                logOnWiki(8)
         elif type(acStatus)==int:
             if acStatus == normdatenStatus:
-                pass#report
+                if acStatus == viafnum:
+                    logOnWiki(9)
+                else:
+                    logOnWiki(10)
             else:
-                pass#report
+                if acStatus == viafnum:
+                    logOnWiki(11)
+                elif viafnum == normdatenStatus:
+                    logOnWiki(12)
+                else:
+                    logOnWiki(13)
     else:
         raise Error
+    
+def logOnWiki(casenum):
+    """
+    Key 
+    nd - normdaten; ac - authority control; vl - viaf->link number
+    (xx) - template does not exist; |xx| - has template but no viaf parameter; |(xx)| -> (xx) or |xx|"""
+    
+    """1 - |(nd)|, (ac)
+        VIAF parameter written."""    
+    """2 - |(nd)|, |ac| 
+        VIAF parameter written."""
+    """3 - |(nd)|, ac == vl 
+        No writing necessary."""
+    """4 - |(nd)|, ac != vl 
+        Requires human attention. Nothing written."""
+    """5 - nd , (ac), nd == vl.
+        VIAF parameter written."""
+    """6 - nd, (ac), nd != vl.
+        Requires human attention. Nothing Written."""
+    """7 - nd, |ac|, nd == vl.
+        VIAF parameter written."""
+    """8 - nd, |ac|, nd != vl.
+        Requires human attention."""
+    """9 - nd, ac , nd == ac == vl.
+        No writing necessary."""
+    """10- nd, ac, nd == ac != vl.
+        Requires human attention. Nothing written."""
+    """11- nd, ac, nd != ac, nd == vl.
+        Requires human attention. Nothing written."""
+    """12- nd, ac, nd != ac, ac == vl.
+        Requires human attention. Nothing written."""
+    """13- nd, ac, nd != ac != vl.
+        Requires human attention. Nothing written."""
 
 def writeEntireTemplate(validatedPage, viafnum):
     """Uses add_text.py to add the wikitext of
      {{Authority control}} template with the VIAF parameter"""
+    if fake:
+        validatedPage = Page(enwp,'User:VIAFbot/'+validatedPage.title())
     ACtemplateWithVIAF = '\n{{Authority control|VIAF=' + str(viafnum) + '}}\n'
     editSummary = 'Added the {{Authority control}} template with VIAF number ' + str(viafnum) + '.'
     add_text(page = validatedPage, 
@@ -109,6 +190,12 @@ def writeEntireTemplate(validatedPage, viafnum):
 
 def writeVIAFparamOnly(validatedPage,viafnum):
     """Instantiates and runs replace.py's ReplaceRobot class"""
+    if fake:
+        validatedPage = Page(enwp,'User:VIAFbot/'+validatedPage.title())
+        add_text(page = validatedPage, 
+             addText = '{{Authority control}}', 
+             always = True, #so add_text won't ask for confirmation
+             summary = 'need this step in testing')
     preloadingGen = [validatedPage]
     replacements = [('{{Authority control' , '{{Authority control|VIAF=' + str(viafnum) + '|')]
     editSummary = 'Adding VIAF parameter to Authority control with VIAF number ' + str(viafnum)
@@ -125,6 +212,8 @@ def writeVIAFparamOnly(validatedPage,viafnum):
                        titlefile, excoutfile)
     replaceBot.run()
 
+
+    
 writeVIAFparamOnly(Page(enwp,'User:VIAFbot/empty'),123456789)
 
 print determineNormdatenTemplate(getGermanName(Page(enwp,'Oscar Wilde')))
@@ -158,9 +247,6 @@ for wikilink in wikilinks:
     except Error:
         viafbotrun.write("Drastic. AC or Normdaten did not have one of the supposed 3 statuses (no,yesnoviaf,yeswithviaf)")
     
-    
-    writeToLog()
-    
     origNameOfPage = wikilink[0]
     afternameOfPage = pageValidator(origNameOfPage)
     print origNameOfPage, afternameOfPage
@@ -177,4 +263,4 @@ for wikilink in wikilinks:
     linkvalidity.write( str(total) + " " + str(same) + str(nopage) + '\n')
 
 #close resources
-wikilinks.close()
+wikilinksfile.close()
