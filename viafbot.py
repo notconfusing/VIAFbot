@@ -9,82 +9,41 @@ from add_text import * #for method writeEntireTemplate
 from replace import * #for method writeVIAFaramOnly
 from time import gmtime, strftime #for timestamping
  
-# global variables
+#  variables
 enwp = getSite('en','wikipedia')
 dewp = getSite('de','wikipedia')
-wikilinksfile = open("wikilinksforbot.out")
+wikilinksfile = open("test.out")#should be wikilinksforbot.out when real
 wikilinks = wikilinksfile.readlines()
-viafbotrun = ("viafbotrun.log", 'w+')
-
-def run():
-    touched = 0
-    same = 0
-    totalRedirects = 0
-    nopage = 0
-    NoDEWP = 0 #counting how many times viafbot made edits were dewp could benefit
-    YesDEWP = 0 #counting how mant times viafbot agreed with dewp.
-    conflict4 = 0
-    conflict6 = 0
-    conflict8 = 0
-    conflict10 = 0
-    conflict11 = 0
-    conflict12 = 0
-    conflict13 = 0
-    superfluous = 0 #counting how many times viaf bot's job had nothing to do.
-    lockedError = 0 
-    editConflictError = 0#edit conflict
-    pageNotSavedError = 0
-    spamfilterError = 0
-    longPageError = 0
-    #the main loop
-    for wikilink in wikilinks:
-        wikilink = wikilink.split() #to get the line into a list of (name, viafnum)
-        unvalidatedPageName = wikilink[0]
-        viafnum = wikilink[1]
-        touched = touched + 1
-        try:
-            validatedPage = pageValidate(unvalidatedPageName) #It's possible that the page doesn't exist
-        except NoPage:
-            viafbotrun.write(unvalidatedPageName.title() + "did not exist, or redirected more than 10 times")
-            continue  #If the page doesn't exist, then we don't need to write anything to the Wiki.
-        
-        #get statuses of Authority Control and Normdaten templates
-        acStatus = determineAuthorityControlTemplate(validatedPage)
-        try:
-            germanPageName = getGermanName(validatedPage)
-        except NoPage: #There was no German equivalent page
-            germanPageName = None
-            viafbotrun.write('No German equivalent')
-        if germanPageName: #Only need to get NormdatenStaus if a German equivalent page exists.
-            normdatenStatus = determineNormdatenTemplate(germanPageName)
-        else:
-            normdatenStatus = 'noNormdatenTemplate' #if there's no page there's also noACtemplate either
-            
-    
-        try:
-            writeToWiki(validatedPage, acStatus, normdatenStatus, writeAttempts=0)
-        except Error:
-            #write to log
-
-    
-
-        origNameOfPage = wikilink[0]
-        afternameOfPage = pageValidator(origNameOfPage)
-        print origNameOfPage, afternameOfPage
-        totalRedirects = totalRedirects +1
-        if afternameOfPage == None:
-            nopage= nopage +1
-            viafbotrun.write("No such article as " + origNameOfPage)
-        else:
-            pass
-        if origNameOfPage == afternameOfPage:
-            same = same +1
-        else:
-            pass
-        linkvalidity.write( str(totalRedirects) + " " + str(same) + str(nopage) + '\n')
-
+viafbotrun = open("viafbotrun.log", 'w+')
+#glovbal stats
+touched = 0
+same = 0
+totalRedirects = 0
+nopage = 0
+NoDEWP = 0 #counting how many times viafbot made edits were dewp could benefit
+YesDEWP = 0 #counting how mant times viafbot agreed with dewp.
+conflict4 = 0
+conflict6 = 0
+conflict8 = 0
+conflict10 = 0
+conflict11 = 0
+conflict12 = 0
+conflict13 = 0
+superfluous = 0 #counting how many times viaf bot's job had nothing to do.
+lockedError = 0 
+editConflictError = 0#edit conflict
+pageNotSavedError = 0
+spamfilterError = 0
+longPageError = 0
+noACtemplateCount = 0
+noNormdatenTemplatecount = 0
+ACtemplateNoVIAFcount = 0
+normdatenTemplateNoVIAFcount = 0
+ACVIAFcount = 0
+normdatenVIAFcount = 0
+                           
     #close resources
-    wikilinksfile.close()
+wikilinksfile.close()
 
 
 
@@ -107,25 +66,37 @@ def pageValidate(nameOfPage):
 def determineAuthorityControlTemplate(pageObject):
     """returns 'noACtemplate' if no Authority Control Template, 'templateNoVIAF' if AC template but no VIAF number, 
     and returns the viaf number if it exists"""
+    global noACtemplateCount
+    global ACtemplateNoVIAFcount
+    global ACVIAFcount
     templates = pageObject.templatesWithParams()
     for template in templates:
         if template[0] == 'Authority control':
             for param in template[1]:
                 if param[:4] == 'VIAF':
+                    ACVIAFcount = ACVIAFcount + 1
                     return param[5:]
+            ACtemplateNoVIAFcount = ACtemplateNoVIAFcount + 1 
             return 'templateNoVIAF'
+    noACtemplateCount = noACtemplateCount + 1
     return 'noACtemplate'
 
 def determineNormdatenTemplate(pageObject):
     """returns 'noNormdatenTemplate' if no Normdaten Template, 'templateNoVIAF'sss if Normdaten template but no VIAF number, 
     and returns the viaf number if it exists"""
+    global noNormdatenTemplatecount
+    global normdatenTemplateNoVIAFcount
+    global normdatenVIAFcount 
     templates = pageObject.templatesWithParams()
     for template in templates:
         if template[0] == 'Normdaten':
             for param in template[1]:
                 if param[:4] == 'VIAF':
+                    normdatenVIAFcount = normdatenVIAFcount + 1
                     return param[5:]
+            normdatenTemplateNoVIAFcount = normdatenTemplateNoVIAFcount + 1
             return 'templateNoVIAF'
+    noNormdatenTemplatecount = noNormdatenTemplatecount + 1
     return 'noNormdatenTemplate'
 
 def getGermanName(pageObject):
@@ -138,7 +109,7 @@ def getGermanName(pageObject):
     except KeyError:
         raise NoPage
     
-def writeToWiki(validatedPage, acStatus, normdatenStatus, writeAttempts):
+def writeToWiki(validatedPage, acStatus, normdatenStatus, viafnum, writeAttempts):
     """13 case switch that Writes viafnum or reports viafnum conflicts to or about validatedPage.
     Key 
     nd - normdaten; ac - authority control; vl - viaf->wikipedia link number
@@ -170,49 +141,54 @@ def writeToWiki(validatedPage, acStatus, normdatenStatus, writeAttempts):
         Requires human attention. Nothing written.
     13- nd, ac, nd != ac != vl.
         Requires human attention. Nothing written."""
-        
+    timestamp = strftime("%H:%M, %d %B %Y", gmtime())
+    global lockedError
+    global editConflictError
+    global pageNotSavedError
+    global spamfilterError
+    global longPageError
+  
     try:
         if (normdatenStatus == 'noNormdatenTemplate') or (normdatenStatus == 'templateNoVIAF'):
-            if acStatus == 'noACtempate':
-                #no normdaten template, no ac template
+            if acStatus == 'noACtemplate':
                 writeEntireTemplate(validatedPage, viafnum)
-                logOnWiki(1,validatedPage)
+                logOnWiki(1,validatedPage, viafnum)
             elif acStatus == 'templateNoVIAF':
                 writeVIAFparamOnly(validatedPage,viafnum)
-                logOnWiki(2, validatedPage)
+                logOnWiki(2, validatedPage, viafnum)
             elif type(acStatus)==int:
                 if viafnum == acStatus:
-                    logOnWiki(3, validatedPage)
+                    logOnWiki(3, validatedPage, viafnum)
                 else:
-                    logOnWiki(4, validatedPage)
+                    logOnWiki(4, validatedPage, viafnum)
         elif type(normdatenStatus)==int:
-            if acStatus == 'noACtempate':
+            if acStatus == 'noACtemplate':
                 if acStatus == normdatenStatus:
                     writeEntireTemplate(validatedPage, viafnum)
-                    logOnWiki(5, validatedPage)
+                    logOnWiki(5, validatedPage, viafnum)
                 else:
                     logOnWiki(6, validatedPage)
             elif acStatus == 'templateNoVIAF':
                 if viafnum == normdatenStatus: #so there is a english template and viafnum agrees with dewp
                     writeVIAFparamOnly(validatedPage,viafnum)
-                    logOnWiki(7, validatedPage)
+                    logOnWiki(7, validatedPage, viafnum)
                 else:
-                    logOnWiki(8, validatedPage)
+                    logOnWiki(8, validatedPage, viafnum)
             elif type(acStatus)==int:
                 if acStatus == normdatenStatus:
                     if acStatus == viafnum:
-                        logOnWiki(9, validatedPage)
+                        logOnWiki(9, validatedPage, viafnum)
                     else:
-                        logOnWiki(10, validatedPage)
+                        logOnWiki(10, validatedPage, viafnum)
                 else:
                     if acStatus == viafnum:
-                        logOnWiki(11, validatedPage)
+                        logOnWiki(11, validatedPage, viafnum)
                     elif viafnum == normdatenStatus:
-                        logOnWiki(12, validatedPage)
+                        logOnWiki(12, validatedPage, viafnum)
                     else:
-                        logOnWiki(13, validatedPage)
+                        logOnWiki(13, validatedPage, viafnum)
         else:
-            raise Error
+            raise Error    
     except LockedPage:
         if writeAttempts == 0:
             lockedError = lockedError + 1
@@ -221,7 +197,7 @@ def writeToWiki(validatedPage, acStatus, normdatenStatus, writeAttempts):
         if writeAttempts <= 6:
             writeToWiki(validatedPage, acStatus, normdatenStatus, writeAttempts)
         else:
-            Page(enwp,'User:VIAFbot/Errors/Locked').append(timestamp + validatedPage.title(asLink=True) + ' was locked ' , comment='Logging', minorEdit=True, section=0)
+            Page(enwp,'User:VIAFbot/Errors/Locked').append('\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' was locked ' , comment='Logging', minorEdit=True, section=0)
     except PageNotSaved:
         if writeAttempts == 0:
             pageNotSavedError = pageNotSavedError + 1
@@ -230,7 +206,7 @@ def writeToWiki(validatedPage, acStatus, normdatenStatus, writeAttempts):
         if writeAttempts <= 6:
             writeToWiki(validatedPage, acStatus, normdatenStatus, writeAttempts)
         else:
-        Page(enwp,'User:VIAFbot/Errors/PageNotSaved').append(timestamp + validatedPage.title(asLink=True) + ' generic page not saved' , comment='Logging', minorEdit=True, section=0)
+            Page(enwp,'User:VIAFbot/Errors/PageNotSaved').append('\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' generic page not saved' , comment='Logging', minorEdit=True, section=0)
     except EditConflict:
         if writeAttempts == 0:
             editConflictError = editConflictError + 1
@@ -239,7 +215,7 @@ def writeToWiki(validatedPage, acStatus, normdatenStatus, writeAttempts):
         if writeAttempts <= 6:
             writeToWiki(validatedPage, acStatus, normdatenStatus, writeAttempts)
         else:
-        Page(enwp,'User:VIAFbot/Errors/EditConflict').append(timestamp + validatedPage.title(asLink=True) + ' edit conflict ' , comment='Logging', minorEdit=True, section=0)
+            Page(enwp,'User:VIAFbot/Errors/EditConflict').append('\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' edit conflict ' , comment='Logging', minorEdit=True, section=0)
     except SpamfilterError:
         if writeAttempts == 0:
             spamfilterError = spamfilterError + 1
@@ -248,7 +224,7 @@ def writeToWiki(validatedPage, acStatus, normdatenStatus, writeAttempts):
         if writeAttempts <= 6:
             writeToWiki(validatedPage, acStatus, normdatenStatus, writeAttempts)
         else:
-        Page(enwp,'User:VIAFbot/Errors/Spamfilter').append(timestamp + validatedPage.title(asLink=True) + ' did not pass spamfilter ' , comment='Logging', minorEdit=True, section=0)
+            Page(enwp,'User:VIAFbot/Errors/Spamfilter').append('\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' did not pass spamfilter ' , comment='Logging', minorEdit=True, section=0)
     except LongPageError:
         if writeAttempts == 0:
             longPageError = longPageError + 1
@@ -257,94 +233,104 @@ def writeToWiki(validatedPage, acStatus, normdatenStatus, writeAttempts):
         if writeAttempts <= 6:
             writeToWiki(validatedPage, acStatus, normdatenStatus, writeAttempts)
         else:
-        Page(enwp,'User:VIAFbot/Errors/LongPage').append(timestamp + validatedPage.title(asLink=True) + ' page too long error ' , comment='Logging', minorEdit=True, section=0)
+            Page(enwp,'User:VIAFbot/Errors/LongPage').append('\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' page too long error ' , comment='Logging', minorEdit=True, section=0)
  
         
     
-def logOnWiki(casenum, validatedPage):
+def logOnWiki(casenum, validatedPage, viafnum):
     """
     Key 
     nd - normdaten; ac - authority control; vl - viaf->link number
     (xx) - template does not exist; |xx| - has template but no viaf parameter; |(xx)| -> (xx) or |xx|"""
     timestamp = strftime("%H:%M, %d %B %Y", gmtime())
+    global NoDEWP
+    global YesDEWP
+    global conflict4
+    global conflict6
+    global conflict8
+    global conflict10
+    global conflict11
+    global conflict12
+    global conflict13
+    global superfluous
     try:
         """1 - |(nd)|, (ac)
             VIAF parameter written."""
         if casenum == 1:
             archiveNum = NoDEWP / 100
-            Page(enwp,'User:VIAFbot/NoDEWP/' + str(archiveNum)).append(timestamp + validatedPage.title(asLink=True) + ' added VIAF number ' + str(viafnum) , comment='Logging', minorEdit=True, section=0) 
+            Page(enwp,'User:VIAFbot/NoDEWP/' + str(archiveNum)).append('\n' + timestamp + validatedPage.title(asLink=True) + ' added VIAF number ' + str(viafnum), comment='Logging', minorEdit=True, section=0) 
             NoDEWP = NoDEWP + 1
         """2 - |(nd)|, |ac| 
             VIAF parameter written."""
         if casenum == 2:
-            archiveNum = NoDEWP / 100
-            Page(enwp,'User:VIAFbot/NoDEWP/' + str(archiveNum)).append(timestamp + validatedPage.title(asLink=True) + ' added VIAF number ' + str(viafnum) , comment='Logging', minorEdit=True, section=0) 
-            NoDEWP = NoDEWP + 1
+            archiveNum =  NoDEWP / 100
+            Page(enwp,'User:VIAFbot/NoDEWP/' + str(archiveNum)).append('\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' added VIAF number ' + str(viafnum), comment='Logging', minorEdit=True, section=0) 
+            NoDEWP =  NoDEWP + 1
         """3 - |(nd)|, ac == vl 
             No writing necessary."""
         if casenum == 3:
             archiveNum = superfluous / 100
-            Page(enwp,'User:VIAFbot/Superfluous/' + str(archiveNum)).append(timestamp + validatedPage.title(asLink=True) + str(viafnum) + ' was already added to both enwp and dewp.', comment='Logging', minorEdit=True, section=0) 
+            Page(enwp,'User:VIAFbot/Superfluous/' + str(archiveNum)).append('\n' + timestamp + ' ' + validatedPage.title(asLink=True) + str(viafnum) + ' was already added to both enwp and dewp.', comment='Logging', minorEdit=True, section=0) 
             superfluous = superfluous + 1
         """4 - |(nd)|, ac != vl 
             Requires human attention. Nothing written."""
         if casenum == 4:
-            archiveNum = conflict4 / 100
-            Page(enwp,'User:VIAFbot/Conflict/6/' + str(archiveNum)).append(timestamp + validatedPage.title(asLink=True) + 'Requires human attention: ac != vl . VIAF number: ' + str(viafnum) , comment='Logging', minorEdit=True, section=0) 
-            conflict4 = conflict4 + 1
+            archiveNum =  conflict4 / 100
+            Page(enwp,'User:VIAFbot/Conflict/6/' + str(archiveNum)).append('\n' + timestamp + ' ' + validatedPage.title(asLink=True) + 'Requires human attention: ac != vl . VIAF number: ' + str(viafnum), comment='Logging', minorEdit=True, section=0) 
+            conflict4 =  conflict4 + 1
         """5 - nd , (ac), nd == vl.
             VIAF parameter written."""
         if casenum == 5:
-            archiveNum = YesDEWP / 100
-            Page(enwp,'User:VIAFbot/DEWP/' + str(archiveNum)).append(timestamp + validatedPage.title(asLink=True) + ' added VIAF number ' + str(viafnum) , comment='Logging', minorEdit=True, section=0) 
-            YesDEWP = YesDEWP + 1
+            archiveNum =   YesDEWP / 100
+            Page(enwp,'User:VIAFbot/DEWP/' + str(archiveNum)).append('\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' added VIAF number ' + str(viafnum), comment='Logging', minorEdit=True, section=0) 
+            YesDEWP =  YesDEWP + 1
         """6 - nd, (ac), nd != vl.
             Requires human attention. Nothing Written."""
         if casenum == 6:
-            archiveNum = conflict6 / 100
-            Page(enwp,'User:VIAFbot/Conflict/6/' + str(archiveNum)).append(timestamp + validatedPage.title(asLink=True) + 'Requires human attention: nd != vl . VIAF number: ' + str(viafnum) , comment='Logging', minorEdit=True, section=0) 
-            conflict6 = conflict6 + 1
+            archiveNum =  conflict6 / 100
+            Page(enwp,'User:VIAFbot/Conflict/6/' + str(archiveNum)).append('\n' + timestamp + ' ' + validatedPage.title(asLink=True) + 'Requires human attention: nd != vl . VIAF number: ' + str(viafnum), comment='Logging', minorEdit=True, section=0) 
+            conflict6 =  conflict6 + 1
         """7 - nd, |ac|, nd == vl.
             VIAF parameter written."""
         if casenum == 7:
-            archiveNum = YesDEWP / 100
-            Page(enwp,'User:VIAFbot/DEWP/' + str(archiveNum)).append(timestamp + validatedPage.title(asLink=True) + ' added VIAF number ' + str(viafnum) , comment='Logging', minorEdit=True, section=0) 
-            YesDEWP = YesDEWP + 1
+            archiveNum =  YesDEWP / 100
+            Page(enwp,'User:VIAFbot/DEWP/' + str(archiveNum)).append('\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' added VIAF number ' + str(viafnum), comment='Logging', minorEdit=True, section=0) 
+            YesDEWP =  YesDEWP + 1
         """8 - nd, |ac|, nd != vl.
             Requires human attention."""
         if casenum == 8:
-            archiveNum = conflict8 / 100
-            Page(enwp,'User:VIAFbot/Conflict/8/' + str(archiveNum)).append(timestamp + validatedPage.title(asLink=True) + 'Requires human attention: nd != vl . VIAF number: ' + str(viafnum) , comment='Logging', minorEdit=True, section=0) 
-            conflict8 = conflict8 + 1
+            archiveNum =  conflict8 / 100
+            Page(enwp,'User:VIAFbot/Conflict/8/' + str(archiveNum)).append('\n' + timestamp + ' ' + validatedPage.title(asLink=True) + 'Requires human attention: nd != vl . VIAF number: ' + str(viafnum), comment='Logging', minorEdit=True, section=0) 
+            conflict8 =  conflict8 + 1
         """9 - nd, ac , nd == ac == vl.
             No writing necessary."""
         if casenum == 9:
             archiveNum = superfluous / 100
-            Page(enwp,'User:VIAFbot/Superfluous/' + str(archiveNum)).append(timestamp + validatedPage.title(asLink=True) + str(viafnum) + ' was already added to both enwp and dewp.', comment='Logging', minorEdit=True, section=0) 
+            Page(enwp,'User:VIAFbot/Superfluous/' + str(archiveNum)).append('\n' + timestamp + ' ' + validatedPage.title(asLink=True) + str(viafnum) + ' was already added to both enwp and dewp.', comment='Logging', minorEdit=True, section=0) 
             superfluous = superfluous + 1
         """10- nd, ac, nd == ac != vl.
             Requires human attention. Nothing written."""
         if casenum == 10:
             archiveNum = conflict10 / 100
-            Page(enwp,'User:VIAFbot/Conflict/10/' + str(archiveNum)).append(timestamp + validatedPage.title(asLink=True) + 'Requires human attention: nd == ac != vl . VIAF number: ' + str(viafnum) , comment='Logging', minorEdit=True, section=0) 
+            Page(enwp,'User:VIAFbot/Conflict/10/' + str(archiveNum)).append('\n' + timestamp + ' ' + validatedPage.title(asLink=True) + 'Requires human attention: nd == ac != vl . VIAF number: ' + str(viafnum), comment='Logging', minorEdit=True, section=0) 
             conflict10 = conflict10 + 1
         """11- nd, ac, nd != ac, nd == vl.
             Requires human attention. Nothing written."""
         if casenum == 11:
             archiveNum = conflict11 / 100
-            Page(enwp,'User:VIAFbot/Conflict/11/' + str(archiveNum)).append(timestamp + validatedPage.title(asLink=True) + 'Requires human attention: nd != ac, nd== vl . VIAF number: ' + str(viafnum) , comment='Logging', minorEdit=True, section=0) 
+            Page(enwp,'User:VIAFbot/Conflict/11/' + str(archiveNum)).append('\n' + timestamp + ' ' + validatedPage.title(asLink=True) + 'Requires human attention: nd != ac, nd== vl . VIAF number: ' + str(viafnum), comment='Logging', minorEdit=True, section=0) 
             conflict11 = conflict11 + 1
         """12- nd, ac, nd != ac, ac == vl.
             Requires human attention. Nothing written."""
         if casenum == 12:
             archiveNum = conflict12 / 100
-            Page(enwp,'User:VIAFbot/Conflict/12/' + str(archiveNum)).append(timestamp + validatedPage.title(asLink=True) + 'Requires human attention: nd != ac, ac == vl . VIAF number: ' + str(viafnum) , comment='Logging', minorEdit=True, section=0) 
+            Page(enwp,'User:VIAFbot/Conflict/12/' + str(archiveNum)).append('\n' + timestamp + ' ' + validatedPage.title(asLink=True) + 'Requires human attention: nd != ac, ac == vl . VIAF number: ' + str(viafnum), comment='Logging', minorEdit=True, section=0) 
             conflict12 = conflict12 + 1
         """13- nd, ac, nd != ac != vl.
             Requires human attention. Nothing written."""
         if casenum == 13:
             archiveNum = conflict13 / 100
-            Page(enwp,'User:VIAFbot/Conflict/13/' + str(archiveNum)).append(timestamp + validatedPage.title(asLink=True) + 'Requires human attention: nd != ac != vl . VIAF number: ' + str(viafnum) , comment='Logging', minorEdit=True, section=0) 
+            Page(enwp,'User:VIAFbot/Conflict/13/' + str(archiveNum)).append('\n' + timestamp + ' ' + validatedPage.title(asLink=True) + 'Requires human attention: nd != ac != vl . VIAF number: ' + str(viafnum), comment='Logging', minorEdit=True, section=0) 
             conflict13 = conflict13 + 1
     except LockedPage:
         raise LockedPage
@@ -370,7 +356,7 @@ def writeEntireTemplate(validatedPage, viafnum):
 def writeVIAFparamOnly(validatedPage,viafnum):
     """Instantiates and runs replace.py's ReplaceRobot class"""
     preloadingGen = [validatedPage]
-    replacements = [('{{Authority control' , '{{Authority control|VIAF=' + str(viafnum) + '|')]
+    replacements = [('{{Authority control' , '{{Authority control|VIAF=' + str(viafnum))]
     editSummary = 'Adding VIAF parameter to Authority control with VIAF number ' + str(viafnum)
     exceptions = []
     acceptall = True
@@ -385,3 +371,33 @@ def writeVIAFparamOnly(validatedPage,viafnum):
                        titlefile, excoutfile)
     replaceBot.run()
 
+
+#the main loop
+for wikilink in wikilinks:
+    wikilink = wikilink.split() #to get the line into a list of (name, viafnum)
+    unvalidatedPageName = wikilink[0]
+    viafnum = wikilink[1]
+    touched = touched + 1
+    try:
+        validatedPage = pageValidate(unvalidatedPageName) #It's possible that the page doesn't exist
+    except NoPage:
+        viafbotrun.write(unvalidatedPageName.title() + "did not exist, or redirected more than 10 times")
+        continue  #If the page doesn't exist, then we don't need to write anything to the Wiki.
+    
+    #get statuses of Authority Control and Normdaten templates
+    acStatus = determineAuthorityControlTemplate(validatedPage)
+    try:
+        germanPageName = getGermanName(validatedPage)
+    except NoPage: #There was no German equivalent page
+        germanPageName = None
+        viafbotrun.write('No German equivalent')
+    if germanPageName: #Only need to get NormdatenStaus if a German equivalent page exists.
+        normdatenStatus = determineNormdatenTemplate(germanPageName)
+    else:
+        normdatenStatus = 'noNormdatenTemplate' #if there's no page there's also noACtemplate either
+        
+
+    try:
+        writeToWiki(validatedPage, acStatus, normdatenStatus, viafnum, writeAttempts=0)
+    except Error:
+        viafbotrun.write(validatedPage.title() + "couldn not be written to log because of a programming error")#write to log
