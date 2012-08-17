@@ -15,9 +15,8 @@ dewp = getSite('de','wikipedia')
 wikilinksfile = open("userspacetest.out")#should be wikilinksforbot.out when real
 wikilinks = wikilinksfile.readlines()
 viafbotrun = open("viafbotrun.log", 'w+')
-#glovbal stats
+#global stats
 touched = 0
-same = 0
 totalRedirects = 0
 nopage = 0
 NoDEWP = 0 #counting how many times viafbot made edits were dewp could benefit
@@ -422,23 +421,77 @@ def writeVIAFparamOnly(validatedPage,viafnum):
         pageNotSavedError +=1
         Page(enwp,'User:VIAFbot/Errors/PageNotSaved').append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' was not saved for some reason that is not editconflict, spam or locked', comment='Logging', minorEdit=True, section=0)
      
-    
+def writeStats():
+    Page(enwp,'User:VIAFbot/Stats').put(
+        '{| class="wikitable"\n\
+        |-\n\
+        | Pages VIAF bot has touched || '+str(touched)+'\n\
+        |-\n\
+        | Page redirects detected|| '+str(totalRedirects)+'\n\
+        |-\n\
+        | Page deletions detected|| '+str(nopage)+'\n\
+        |-\n\
+        | Pages for which German Wikipedia has no VIAF data|| '+str(NoDEWP)+'\n\
+        |-\n\
+        | Pages for which German Wikipedia had VIAF data that agreed with viaf.org || '+str(YesDEWP)+'\n\
+        |-\n\
+        | [[User:VIAFbot/Conflicts|Conflict type 4]] || '+str(conflict4)+'\n\
+        |-\n\
+        | [[User:VIAFbot/Conflicts|Conflict type 6]] || '+str(conflict6)+'\n\
+        |-\n\
+        | [[User:VIAFbot/Conflicts|Conflict type 8]] || '+str(conflict8)+'\n\
+        |-\n\
+        | [[User:VIAFbot/Conflicts|Conflict type 10]] || '+str(conflict10)+'\n\
+        |-\n\
+        | [[User:VIAFbot/Conflicts|Conflict type 11]] || '+str(conflict11)+'\n\
+        |-\n\
+        | [[User:VIAFbot/Conflicts|Conflict type 12]] || '+str(conflict12)+'\n\
+        |-\n\
+        | [[User:VIAFbot/Conflicts|Conflict type 13]] || '+str(conflict13)+'\n\
+        |-\n\
+        | Pages for which humans had already put in all correct VIAF data|| '+str(superfluous)+'\n\
+        |-\n\
+        | [[User:VIAFbot/Errors/Locked|Pages that VIAFbot tried to edit but were locked]] || '+str(lockedError)+'\n\
+        |-\n\
+        | [[User:VIAFbot/Errors/EditConflict|Pages that VIAFbot tried to edit but resulted in edit conflicts]] || '+str(editConflictError)+'\n\
+        |-\n\
+        | [[User:VIAFbot/Errors/PageNotSaved|Pages that could not be saved for other reasons]] || '+str(pageNotSavedError)+'\n\
+        |-\n\
+        | [[User:VIAFbot/Errors/Spamfilter|Pages that VIAFbot tried to edit but were detected as spam]] || '+str(spamfilterError)+'\n\
+        |-\n\
+        | [[User:VIAFbot/Errors/LongPage|Pages that VIAFbot tried to edit but were over the maximum page length]] || '+str(longPageError)+'\n\
+        |-\n\
+        | Pages which VIAFbot touched but had no {{tl|Authority control}} || '+str(noACtemplateCount)+'\n\
+        |-\n\
+        | Pages which VIAFbot touched but had no Normdaten template || '+str(noNormdatenTemplatecount)+'\n\
+        |-\n\
+        | Pages which VIAFbot touched had {{tl|Authority control}}, but no VIAF parameter || '+str(ACtemplateNoVIAFcount)+'\n\
+        |-\n\
+        | Pages which VIAFbot touched had Normdaten template but no VIAF parameter || '+str(normdatenTemplateNoVIAFcount)+'\n\
+        |-\n\
+        | Pages which VIAFbot touched that already had {{tl|Authority control}} with VIAF parameter || '+str(ACVIAFcount)+'\n\
+        |-\n\
+        | Pages which VIAFbot touched that already had Normdaten template with VIAF parameter|| '+str(normdatenVIAFcount)+'\n\
+        |}', 
+        comment='Updating Stats', minorEdit=True)    
 
 writeEntireTemplate(Page(enwp,'Template:Db-meta'), 84036229)
 print 'wd'
 
 #the main loop
 for wikilink in wikilinks:
+    '''Load the article and number from file'''
     wikilink = wikilink.split() #to get the line into a list of (name, viafnum)
     unvalidatedPageName = wikilink[0]
     viafnum = int(wikilink[1])
     touched = touched + 1
+    '''Find redirects or deletions, after all this file could be 6 months oout of date'''
     try:
         validatedPage = pageValidate(unvalidatedPageName) #It's possible that the page doesn't exist
     except NoPage:
         viafbotrun.write(unvalidatedPageName.title() + "did not exist, or redirected more than 10 times")
         continue  #If the page doesn't exist, then we don't need to write anything to the Wiki.
-    #get statuses of Authority Control and Normdaten templates
+    '''get statuses of Authority Control and Normdaten templates'''
     acStatus = determineAuthorityControlTemplate(validatedPage)
     try:
         germanPageName = getGermanName(validatedPage)
@@ -447,8 +500,13 @@ for wikilink in wikilinks:
     if germanPageName: #Only need to get NormdatenStaus if a German equivalent page exists.
         normdatenStatus = determineNormdatenTemplate(germanPageName)
     else:
-        normdatenStatus = 'noNormdatenTemplate' #if there's no page there's also noACtemplate either  
+        normdatenStatus = 'noNormdatenTemplate' #if there's no page there's also noACtemplate either 
+    '''Write the viafnumber according to what we found from DEWP''' 
     try:
         writeToWiki(validatedPage, acStatus, normdatenStatus, viafnum, writeAttempts=0)
     except Error:
         viafbotrun.write(validatedPage.title() + " was not written to wiki because of ac and nd status were not valid")#write to log
+    '''Write statistics onwiki every so often'''
+    if (touched % 100) == 0:
+        writeStats()
+    else: pass
