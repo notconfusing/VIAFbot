@@ -475,7 +475,6 @@ def writeStats():
         |}', 
         comment='Updating Stats', minorEdit=True)    
 
-writeEntireTemplate(Page(enwp,'Template:Db-meta'), 84036229)
 print 'wd'
 
 #the main loop
