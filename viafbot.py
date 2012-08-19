@@ -474,9 +474,7 @@ def writeStats():
         | Pages which VIAFbot touched that already had Normdaten template with VIAF parameter|| '+str(normdatenVIAFcount)+'\n\
         |}', 
         comment='Updating Stats', minorEdit=True)    
-
-print 'wd'
-
+        
 #the main loop
 for wikilink in wikilinks:
     '''Load the article and number from file'''
