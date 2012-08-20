@@ -4,14 +4,14 @@
 # importing modules
 # requires that pywikipediabot modules be in your PYTHONPATH
 import sys
-from wikipedia import *
+import wikipedia
 from add_text_customised import * #for method writeEntireTemplate
 from replace_customised import * #for method writeVIAFaramOnly
 from time import gmtime, strftime #for timestamping
  
 #  variables
-enwp = getSite('en','wikipedia')
-dewp = getSite('de','wikipedia')
+enwp = wikipedia.getSite('en','wikipedia')
+dewp = wikipedia.getSite('de','wikipedia')
 wikilinksfile = open("userspacetest.out")#should be wikilinksforbot.out when real
 wikilinks = wikilinksfile.readlines()
 viafbotrun = open("viafbotrun.log", 'w+')
@@ -52,15 +52,15 @@ def pageValidate(nameOfPage):
     """accepts string of page name in EnglishWikipedia. 
     returns a Page Object of either the page or it's redirect (upto 10 redirects).
     raises NoPage exception if the page does not exist"""
-    possiblePage = Page(enwp,nameOfPage)
+    possiblePage = wikipedia.Page(enwp,nameOfPage)
     for i in range(1,10):
         try:
             possiblePage.get()
             return possiblePage
-        except IsRedirectPage, redirPageName:
-            possiblePage = Page(enwp,str(redirPageName))
-        except NoPage:
-            raise NoPage
+        except wikipedia.IsRedirectPage, redirPageName:
+            possiblePage = wikipedia.Page(enwp,str(redirPageName))
+        except wikipedia.NoPage:
+            raise wikipedia.NoPage
         
 def determineAuthorityControlTemplate(pageObject):
     """returns 'noACtemplate' if no Authority Control Template, 'templateNoVIAF' if AC template but no VIAF number, 
@@ -112,11 +112,11 @@ def getGermanName(pageObject):
     """returns a Page object which is the equivalent German Wikipedia page to argument
     raises NoPage if there is no German equivalent."""
     pageText = pageObject.get()
-    interWikis = getLanguageLinks(pageText)
+    interWikis = wikipedia.getLanguageLinks(pageText)
     try:
         return interWikis[dewp]
     except KeyError:
-        raise NoPage
+        raise wikipedia.NoPage
     
 def writeToWiki(validatedPage, acStatus, normdatenStatus, viafnum, writeAttempts):
     """13 case switch that Writes viafnum or reports viafnum conflicts to or about validatedPage.
@@ -197,8 +197,8 @@ def writeToWiki(validatedPage, acStatus, normdatenStatus, viafnum, writeAttempts
                     else:
                         logOnWiki(13, validatedPage, viafnum)
         else:
-            raise Error    
-    except LockedPage:
+            raise wikipedia.Error    
+    except wikipedia.LockedPage:
         if writeAttempts == 0:
             lockedError = lockedError + 1
         else: pass
@@ -206,8 +206,8 @@ def writeToWiki(validatedPage, acStatus, normdatenStatus, viafnum, writeAttempts
         if writeAttempts <= 6:
             writeToWiki(validatedPage, acStatus, normdatenStatus, writeAttempts)
         else:
-            Page(enwp,'User:VIAFbot/Errors/Locked').append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' was locked ' , comment='Logging', minorEdit=True, section=0)
-    except PageNotSaved:
+            wikipedia.Page(enwp,'User:VIAFbot/Errors/Locked').append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' was locked ' , comment='Logging', minorEdit=True, section=0)
+    except wikipedia.PageNotSaved:
         if writeAttempts == 0:
             pageNotSavedError = pageNotSavedError + 1
         else: pass
@@ -215,8 +215,8 @@ def writeToWiki(validatedPage, acStatus, normdatenStatus, viafnum, writeAttempts
         if writeAttempts <= 6:
             writeToWiki(validatedPage, acStatus, normdatenStatus, writeAttempts)
         else:
-            Page(enwp,'User:VIAFbot/Errors/PageNotSaved').append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' generic page not saved' , comment='Logging', minorEdit=True, section=0)
-    except EditConflict:
+            wikipedia.Page(enwp,'User:VIAFbot/Errors/PageNotSaved').append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' generic page not saved' , comment='Logging', minorEdit=True, section=0)
+    except wikipedia.EditConflict:
         if writeAttempts == 0:
             editConflictError = editConflictError + 1
         else: pass
@@ -224,8 +224,8 @@ def writeToWiki(validatedPage, acStatus, normdatenStatus, viafnum, writeAttempts
         if writeAttempts <= 6:
             writeToWiki(validatedPage, acStatus, normdatenStatus, writeAttempts)
         else:
-            Page(enwp,'User:VIAFbot/Errors/EditConflict').append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' edit conflict ' , comment='Logging', minorEdit=True, section=0)
-    except SpamfilterError:
+            wikipedia.Page(enwp,'User:VIAFbot/Errors/EditConflict').append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' edit conflict ' , comment='Logging', minorEdit=True, section=0)
+    except wikipedia.SpamfilterError:
         if writeAttempts == 0:
             spamfilterError = spamfilterError + 1
         else: pass
@@ -233,8 +233,8 @@ def writeToWiki(validatedPage, acStatus, normdatenStatus, viafnum, writeAttempts
         if writeAttempts <= 6:
             writeToWiki(validatedPage, acStatus, normdatenStatus, writeAttempts)
         else:
-            Page(enwp,'User:VIAFbot/Errors/Spamfilter').append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' did not pass spamfilter ' , comment='Logging', minorEdit=True, section=0)
-    except LongPageError:
+            wikipedia.Page(enwp,'User:VIAFbot/Errors/Spamfilter').append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' did not pass spamfilter ' , comment='Logging', minorEdit=True, section=0)
+    except wikipedia.LongPageError:
         if writeAttempts == 0:
             longPageError = longPageError + 1
         else: pass
@@ -242,7 +242,7 @@ def writeToWiki(validatedPage, acStatus, normdatenStatus, viafnum, writeAttempts
         if writeAttempts <= 6:
             writeToWiki(validatedPage, acStatus, normdatenStatus, writeAttempts)
         else:
-            Page(enwp,'User:VIAFbot/Errors/LongPage').append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' page too long error ' , comment='Logging', minorEdit=True, section=0)
+            wikipedia.Page(enwp,'User:VIAFbot/Errors/LongPage').append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' page too long error ' , comment='Logging', minorEdit=True, section=0)
  
         
     
@@ -267,90 +267,90 @@ def logOnWiki(casenum, validatedPage, viafnum):
             VIAF parameter written."""
         if casenum == 1:
             archiveNum = NoDEWP / 100
-            Page(enwp,'User:VIAFbot/NoDEWP/' + str(archiveNum)).append('\n\n' + timestamp + validatedPage.title(asLink=True) + ' added VIAF number ' + str(viafnum), comment='Logging', minorEdit=True, section=0) 
+            wikipedia.Page(enwp,'User:VIAFbot/NoDEWP/' + str(archiveNum)).append('\n\n' + timestamp + validatedPage.title(asLink=True) + ' added VIAF number ' + str(viafnum), comment='Logging', minorEdit=True, section=0) 
             NoDEWP = NoDEWP + 1
         """2 - |(nd)|, |ac| 
             VIAF parameter written."""
         if casenum == 2:
             archiveNum =  NoDEWP / 100
-            Page(enwp,'User:VIAFbot/NoDEWP/' + str(archiveNum)).append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' added VIAF number ' + str(viafnum), comment='Logging', minorEdit=True, section=0) 
+            wikipedia.Page(enwp,'User:VIAFbot/NoDEWP/' + str(archiveNum)).append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' added VIAF number ' + str(viafnum), comment='Logging', minorEdit=True, section=0) 
             NoDEWP =  NoDEWP + 1
         """3 - |(nd)|, ac == vl 
             No writing necessary."""
         if casenum == 3:
             archiveNum = superfluous / 100
-            Page(enwp,'User:VIAFbot/Superfluous/' + str(archiveNum)).append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' ' + str(viafnum) + ' was already added to both enwp and dewp.', comment='Logging', minorEdit=True, section=0) 
+            wikipedia.Page(enwp,'User:VIAFbot/Superfluous/' + str(archiveNum)).append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' ' + str(viafnum) + ' was already added to both enwp and dewp.', comment='Logging', minorEdit=True, section=0) 
             superfluous = superfluous + 1
         """4 - |(nd)|, ac != vl 
             requires human attention. Nothing written."""
         if casenum == 4:
             archiveNum =  conflict4 / 100
-            Page(enwp,'User:VIAFbot/Conflict/4/' + str(archiveNum)).append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' requires human attention: ac != vl . VIAF number: ' + str(viafnum), comment='Logging', minorEdit=True, section=0) 
+            wikipedia.Page(enwp,'User:VIAFbot/Conflict/4/' + str(archiveNum)).append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' requires human attention: ac != vl . VIAF number: ' + str(viafnum), comment='Logging', minorEdit=True, section=0) 
             conflict4 =  conflict4 + 1
         """5 - nd , (ac), nd == vl.
             VIAF parameter written."""
         if casenum == 5:
             archiveNum =   YesDEWP / 100
-            Page(enwp,'User:VIAFbot/YesDEWP/' + str(archiveNum)).append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' added VIAF number ' + str(viafnum), comment='Logging', minorEdit=True, section=0) 
+            wikipedia.Page(enwp,'User:VIAFbot/YesDEWP/' + str(archiveNum)).append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' added VIAF number ' + str(viafnum), comment='Logging', minorEdit=True, section=0) 
             YesDEWP =  YesDEWP + 1
         """6 - nd, (ac), nd != vl.
             requires human attention. Nothing Written."""
         if casenum == 6:
             archiveNum =  conflict6 / 100
-            Page(enwp,'User:VIAFbot/Conflict/6/' + str(archiveNum)).append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' requires human attention: nd != vl . VIAF number: ' + str(viafnum), comment='Logging', minorEdit=True, section=0) 
+            wikipedia.Page(enwp,'User:VIAFbot/Conflict/6/' + str(archiveNum)).append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' requires human attention: nd != vl . VIAF number: ' + str(viafnum), comment='Logging', minorEdit=True, section=0) 
             conflict6 =  conflict6 + 1
         """7 - nd, |ac|, nd == vl.
             VIAF parameter written."""
         if casenum == 7:
             archiveNum =  YesDEWP / 100
-            Page(enwp,'User:VIAFbot/YesDEWP/' + str(archiveNum)).append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' added VIAF number ' + str(viafnum), comment='Logging', minorEdit=True, section=0) 
+            wikipedia.Page(enwp,'User:VIAFbot/YesDEWP/' + str(archiveNum)).append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' added VIAF number ' + str(viafnum), comment='Logging', minorEdit=True, section=0) 
             YesDEWP =  YesDEWP + 1
         """8 - nd, |ac|, nd != vl.
             requires human attention."""
         if casenum == 8:
             archiveNum =  conflict8 / 100
-            Page(enwp,'User:VIAFbot/Conflict/8/' + str(archiveNum)).append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' requires human attention: nd != vl . VIAF number: ' + str(viafnum), comment='Logging', minorEdit=True, section=0) 
+            wikipedia.Page(enwp,'User:VIAFbot/Conflict/8/' + str(archiveNum)).append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' requires human attention: nd != vl . VIAF number: ' + str(viafnum), comment='Logging', minorEdit=True, section=0) 
             conflict8 =  conflict8 + 1
         """9 - nd, ac , nd == ac == vl.
             No writing necessary."""
         if casenum == 9:
             archiveNum = superfluous / 100
-            Page(enwp,'User:VIAFbot/Superfluous/' + str(archiveNum)).append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + str(viafnum) + ' was already added to both enwp and dewp.', comment='Logging', minorEdit=True, section=0) 
+            wikipedia.Page(enwp,'User:VIAFbot/Superfluous/' + str(archiveNum)).append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + str(viafnum) + ' was already added to both enwp and dewp.', comment='Logging', minorEdit=True, section=0) 
             superfluous = superfluous + 1
         """10- nd, ac, nd == ac != vl.
             requires human attention. Nothing written."""
         if casenum == 10:
             archiveNum = conflict10 / 100
-            Page(enwp,'User:VIAFbot/Conflict/10/' + str(archiveNum)).append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' requires human attention: nd == ac != vl . VIAF number: ' + str(viafnum), comment='Logging', minorEdit=True, section=0) 
+            wikipedia.Page(enwp,'User:VIAFbot/Conflict/10/' + str(archiveNum)).append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' requires human attention: nd == ac != vl . VIAF number: ' + str(viafnum), comment='Logging', minorEdit=True, section=0) 
             conflict10 = conflict10 + 1
         """11- nd, ac, nd != ac, nd == vl.
             requires human attention. Nothing written."""
         if casenum == 11:
             archiveNum = conflict11 / 100
-            Page(enwp,'User:VIAFbot/Conflict/11/' + str(archiveNum)).append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' requires human attention: nd != ac, nd== vl . VIAF number: ' + str(viafnum), comment='Logging', minorEdit=True, section=0) 
+            wikipedia.Page(enwp,'User:VIAFbot/Conflict/11/' + str(archiveNum)).append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' requires human attention: nd != ac, nd== vl . VIAF number: ' + str(viafnum), comment='Logging', minorEdit=True, section=0) 
             conflict11 = conflict11 + 1
         """12- nd, ac, nd != ac, ac == vl.
             requires human attention. Nothing written."""
         if casenum == 12:
             archiveNum = conflict12 / 100
-            Page(enwp,'User:VIAFbot/Conflict/12/' + str(archiveNum)).append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' requires human attention: nd != ac, ac == vl . VIAF number: ' + str(viafnum), comment='Logging', minorEdit=True, section=0) 
+            wikipedia.Page(enwp,'User:VIAFbot/Conflict/12/' + str(archiveNum)).append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' requires human attention: nd != ac, ac == vl . VIAF number: ' + str(viafnum), comment='Logging', minorEdit=True, section=0) 
             conflict12 = conflict12 + 1
         """13- nd, ac, nd != ac != vl.
             requires human attention. Nothing written."""
         if casenum == 13:
             archiveNum = conflict13 / 100
-            Page(enwp,'User:VIAFbot/Conflict/13/' + str(archiveNum)).append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' requires human attention: nd != ac != vl . VIAF number: ' + str(viafnum), comment='Logging', minorEdit=True, section=0) 
+            wikipedia.Page(enwp,'User:VIAFbot/Conflict/13/' + str(archiveNum)).append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' requires human attention: nd != ac != vl . VIAF number: ' + str(viafnum), comment='Logging', minorEdit=True, section=0) 
             conflict13 = conflict13 + 1
-    except LockedPage:
-        raise LockedPage
-    except PageNotSaved:
-        raise LockedPage
-    except EditConflict:
-        raise EditConflict
-    except SpamfilterError:
-        raise SpamfilterError
-    except LongPageError:
-        raise LongPageError
+    except wikipedia.LockedPage:
+        raise wikipedia.LockedPage
+    except wikipedia.PageNotSaved:
+        raise wikipedia.LockedPage
+    except wikipedia.EditConflict:
+        raise wikipedia.EditConflict
+    except wikipedia.SpamfilterError:
+        raise wikipedia.SpamfilterError
+    except wikipedia.LongPageError:
+        raise wikipedia.LongPageError
         
 def writeEntireTemplate(validatedPage, viafnum):
     """Uses add_text.py to add the wikitext of
@@ -367,20 +367,20 @@ def writeEntireTemplate(validatedPage, viafnum):
              addText = ACtemplateWithVIAF, 
              always = True, #so add_text won't ask for confirmation
              summary = editSummary)
-    except LockedPage:
+    except wikipedia.LockedPage:
         lockedError += 1
-        Page(enwp,'User:VIAFbot/Errors/Locked').append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' was locked when VIAFbot tried to edit it', comment='Logging', minorEdit=True, section=0)
-    except EditConflict:
+        wikipedia.Page(enwp,'User:VIAFbot/Errors/Locked').append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' was locked when VIAFbot tried to edit it', comment='Logging', minorEdit=True, section=0)
+    except wikipedia.EditConflict:
         editConflictError += 1
-        Page(enwp,'User:VIAFbot/Errors/EditConflict').append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' involved in an edit conflict when VIAFbot tried to edit it', comment='Logging', minorEdit=True, section=0)
-    except ServerError:
+        wikipedia.Page(enwp,'User:VIAFbot/Errors/EditConflict').append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' involved in an edit conflict when VIAFbot tried to edit it', comment='Logging', minorEdit=True, section=0)
+    except wikipedia.ServerError:
         pass
-    except SpamfilterError:
+    except wikipedia.SpamfilterError:
         spamfilterError += 1
-        Page(enwp,'Creating User:VIAFbot/Errors/Spamfilter').append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' was detected as a spam edit', comment='Logging', minorEdit=True, section=0)
-    except PageNotSaved:
+        wikipedia.Page(enwp,'Creating User:VIAFbot/Errors/Spamfilter').append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' was detected as a spam edit', comment='Logging', minorEdit=True, section=0)
+    except wikipedia.PageNotSaved:
         pageNotSavedError +=1
-        Page(enwp,'User:VIAFbot/Errors/PageNotSaved').append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' was not saved for some reason that is not editconflict, spam or locked', comment='Logging', minorEdit=True, section=0)
+        wikipedia.Page(enwp,'User:VIAFbot/Errors/PageNotSaved').append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' was not saved for some reason that is not editconflict, spam or locked', comment='Logging', minorEdit=True, section=0)
         
 
 def writeVIAFparamOnly(validatedPage,viafnum):
@@ -406,23 +406,23 @@ def writeVIAFparamOnly(validatedPage,viafnum):
                        titlefile, excoutfile)
     try:
         replaceBot.run()
-    except LockedPage:
+    except wikipedia.LockedPage:
         lockedError += 1
-        Page(enwp,'User:VIAFbot/Errors/Locked').append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' was locked when VIAFbot tried to edit it', comment='Logging', minorEdit=True, section=0)
-    except EditConflict:
+        wikipedia.Page(enwp,'User:VIAFbot/Errors/Locked').append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' was locked when VIAFbot tried to edit it', comment='Logging', minorEdit=True, section=0)
+    except wikipedia.EditConflict:
         editConflictError += 1
-        Page(enwp,'User:VIAFbot/Errors/EditConflict').append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' involved in an edit conflict when VIAFbot tried to edit it', comment='Logging', minorEdit=True, section=0)
-    except ServerError:
+        wikipedia.Page(enwp,'User:VIAFbot/Errors/EditConflict').append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' involved in an edit conflict when VIAFbot tried to edit it', comment='Logging', minorEdit=True, section=0)
+    except wikipedia.ServerError:
         pass
-    except SpamfilterError:
+    except wikipedia.SpamfilterError:
         spamfilterError += 1
-        Page(enwp,'Creating User:VIAFbot/Errors/Spamfilter').append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' was detected as a spam edit', comment='Logging', minorEdit=True, section=0)
-    except PageNotSaved:
+        wikipedia.Page(enwp,'Creating User:VIAFbot/Errors/Spamfilter').append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' was detected as a spam edit', comment='Logging', minorEdit=True, section=0)
+    except wikipedia.PageNotSaved:
         pageNotSavedError +=1
-        Page(enwp,'User:VIAFbot/Errors/PageNotSaved').append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' was not saved for some reason that is not editconflict, spam or locked', comment='Logging', minorEdit=True, section=0)
+        wikipedia.Page(enwp,'User:VIAFbot/Errors/PageNotSaved').append('\n\n' + timestamp + ' ' + validatedPage.title(asLink=True) + ' was not saved for some reason that is not editconflict, spam or locked', comment='Logging', minorEdit=True, section=0)
      
 def writeStats():
-    Page(enwp,'User:VIAFbot/Stats').put(
+    wikipedia.Page(enwp,'User:VIAFbot/Stats').put(
         '{| class="wikitable"\n\
         |-\n\
         | Pages VIAF bot has touched || '+str(touched)+'\n\
@@ -485,14 +485,14 @@ for wikilink in wikilinks:
     '''Find redirects or deletions, after all this file could be 6 months oout of date'''
     try:
         validatedPage = pageValidate(unvalidatedPageName) #It's possible that the page doesn't exist
-    except NoPage:
+    except wikipedia.NoPage:
         viafbotrun.write(unvalidatedPageName.title() + "did not exist, or redirected more than 10 times")
         continue  #If the page doesn't exist, then we don't need to write anything to the Wiki.
     '''get statuses of Authority Control and Normdaten templates'''
     acStatus = determineAuthorityControlTemplate(validatedPage)
     try:
         germanPageName = getGermanName(validatedPage)
-    except NoPage: #There was no German equivalent page
+    except wikipedia.NoPage: #There was no German equivalent page
         germanPageName = None
     if germanPageName: #Only need to get NormdatenStaus if a German equivalent page exists.
         normdatenStatus = determineNormdatenTemplate(germanPageName)
@@ -501,9 +501,9 @@ for wikilink in wikilinks:
     '''Write the viafnumber according to what we found from DEWP''' 
     try:
         writeToWiki(validatedPage, acStatus, normdatenStatus, viafnum, writeAttempts=0)
-    except Error:
+    except wikipedia.Error:
         viafbotrun.write(validatedPage.title() + " was not written to wiki because of ac and nd status were not valid")#write to log
     '''Write statistics onwiki every so often'''
-    if (touched % 100) == 0:
+    if (touched % 1000) == 0:
         writeStats()
     else: pass
