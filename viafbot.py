@@ -23,6 +23,7 @@ YesDEWPlog = open("YesDEWP.log", 'w+')
 conflict4log = open("conflict4.log", 'w+')
 conflict6log = open("conflict6.log", 'w+')
 conflict8log = open("conflict8.log", 'w+')
+conflict10log = open("conflict10.log", 'w+')
 conflict11log = open("conflict11.log", 'w+')
 conflict12log = open("conflict12.log", 'w+')
 conflict13log = open("conflict13.log", 'w+')
@@ -440,9 +441,6 @@ def last100LogLinesAsString(logfile):
         wikitext += loglist[i]
     return wikitext
 
-def writeLogTails():
-    """Writing the last parts of the log that were batched but not writen"""
-    
     
         
 def writeEntireTemplate(validatedPage, viafnum):
@@ -574,8 +572,6 @@ for wikilink in wikilinks:
     if (touched % 1000) == 0:
         writeStats()
     else: pass
-    
-writeLogTails()
 
 #close files
 wikilinksfile.close()
