@@ -4,8 +4,8 @@
 # importing modules
 # requires that pywikipediabot modules be in your PYTHONPATH
 import wikipedia
-import exceptions
-import textlib
+import pywikibot.exceptions as exceptions
+import pywikibot.textlib as textlib
 import add_text_customised#for method writeEntireTemplate
 #if using writeVIAFparamOnly not writeVIAFparamOnly2: 
 from time import gmtime, strftime #for timestamping
@@ -15,7 +15,7 @@ from time import gmtime, strftime #for timestamping
 enwp = wikipedia.getSite('en','wikipedia')
 dewp = wikipedia.getSite('de','wikipedia')
 #files
-wikilinksfile = open("userspacetest.out")#should be wikilinksforbot.out when real
+wikilinksfile = open("35linksfortrial.out")#should be wikilinksforbot.out when real
 wikilinks = wikilinksfile.readlines()
 viafbotrun = open("viafbotrun.log", 'w+')
 NoDEWPlog = open("NoDEWP.log", 'w+')
