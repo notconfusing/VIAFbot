@@ -331,7 +331,7 @@ def logOnWiki(casenum, validatedPage, viafnum):
             requires human attention. Nothing written."""
         if casenum == 4:
             conflict4 += 1
-            conflict4log.write('* ' + timestamp + ' . ' + validatedPage.title(asLink=True) + ' requires human attention: ac != vl . VIAF number: ' + str(viafnum))
+            conflict4log.write('* ' + timestamp + ' . ' + validatedPage.title(asLink=True) + ' requires human attention: ac != vl . VIAF number: \n' + str(viafnum))
             if conflict4 % 100 == 99:
                 archiveNum =  conflict4 / 100
                 wikipedia.Page(enwp,'User:VIAFbot/Conflict/4/' + str(archiveNum)).append(last100LogLinesAsString(conflict4log), comment='Logging', minorEdit=True, section=0) 
@@ -349,7 +349,7 @@ def logOnWiki(casenum, validatedPage, viafnum):
             requires human attention. Nothing Written."""
         if casenum == 6:
             conflict6 += 1
-            conflict6log.write('* ' + timestamp + ' . ' + validatedPage.title(asLink=True) + ' requires human attention: nd != vl . VIAF number: ' + str(viafnum))
+            conflict6log.write('* ' + timestamp + ' . ' + validatedPage.title(asLink=True) + ' requires human attention: nd != vl . VIAF number: \n' + str(viafnum))
             if conflict6 % 100 == 99:
                 archiveNum =  conflict6 / 100
                 wikipedia.Page(enwp,'User:VIAFbot/Conflict/6/' + str(archiveNum)).append(last100LogLinesAsString(conflict6log), comment='Logging', minorEdit=True, section=0) 
@@ -367,7 +367,7 @@ def logOnWiki(casenum, validatedPage, viafnum):
             requires human attention."""
         if casenum == 8:
             conflict8 += 1
-            conflict8log.write('* ' + timestamp + ' . ' + validatedPage.title(asLink=True) + ' requires human attention: nd != vl . VIAF number: ' + str(viafnum))
+            conflict8log.write('* ' + timestamp + ' . ' + validatedPage.title(asLink=True) + ' requires human attention: nd != vl . VIAF number: \n' + str(viafnum))
             if conflict8 % 100 == 99:
                 archiveNum =  conflict8 / 100
                 wikipedia.Page(enwp,'User:VIAFbot/Conflict/8/' + str(archiveNum)).append(last100LogLinesAsString(conflict8log), comment='Logging', minorEdit=True, section=0) 
@@ -385,7 +385,7 @@ def logOnWiki(casenum, validatedPage, viafnum):
             requires human attention. Nothing written."""
         if casenum == 10:
             conflict10 += 1
-            conflict10log.write('* ' + timestamp + ' . ' + validatedPage.title(asLink=True) + ' requires human attention: nd == ac != vl . VIAF number: ' + str(viafnum))
+            conflict10log.write('* ' + timestamp + ' . ' + validatedPage.title(asLink=True) + ' requires human attention: nd == ac != vl . VIAF number: \n' + str(viafnum))
             if conflict10 % 100 == 99:
                 archiveNum =  conflict10 / 100
                 wikipedia.Page(enwp,'User:VIAFbot/Conflict/10/' + str(archiveNum)).append(last100LogLinesAsString(conflict10log), comment='Logging', minorEdit=True, section=0) 
@@ -394,7 +394,7 @@ def logOnWiki(casenum, validatedPage, viafnum):
             requires human attention. Nothing written."""
         if casenum == 11:
             conflict11 += 1
-            conflict11log.write('* ' + timestamp + ' . ' + validatedPage.title(asLink=True) + ' requires human attention: nd != ac, nd == vl . VIAF number: ' + str(viafnum))
+            conflict11log.write('* ' + timestamp + ' . ' + validatedPage.title(asLink=True) + ' requires human attention: nd != ac, nd == vl . VIAF number: \n' + str(viafnum))
             if conflict11 % 100 == 99:
                 archiveNum =  conflict11 / 100
                 wikipedia.Page(enwp,'User:VIAFbot/Conflict/11/' + str(archiveNum)).append(last100LogLinesAsString(conflict11log), comment='Logging', minorEdit=True, section=0) 
@@ -403,7 +403,7 @@ def logOnWiki(casenum, validatedPage, viafnum):
             requires human attention. Nothing written."""
         if casenum == 12:
             conflict12 += 1
-            conflict12log.write('* ' + timestamp + ' . ' + validatedPage.title(asLink=True) + ' requires human attention: nd != ac, ac == vl . VIAF number: ' + str(viafnum))
+            conflict12log.write('* ' + timestamp + ' . ' + validatedPage.title(asLink=True) + ' requires human attention: nd != ac, ac == vl . VIAF number: \n' + str(viafnum))
             if conflict12 % 100 == 99:
                 archiveNum =  conflict12 / 100
                 wikipedia.Page(enwp,'User:VIAFbot/Conflict/12/' + str(archiveNum)).append(last100LogLinesAsString(conflict12log), comment='Logging', minorEdit=True, section=0) 
@@ -412,7 +412,7 @@ def logOnWiki(casenum, validatedPage, viafnum):
             requires human attention. Nothing written."""
         if casenum == 13:
             conflict13 += 1
-            conflict13log.write('* ' + timestamp + ' . ' + validatedPage.title(asLink=True) + ' requires human attention: nd != ac != vl . VIAF number: ' + str(viafnum))
+            conflict13log.write('* ' + timestamp + ' . ' + validatedPage.title(asLink=True) + ' requires human attention: nd != ac != vl . VIAF number: \n' + str(viafnum))
             if conflict13 % 100 == 99:
                 archiveNum =  conflict13 / 100
                 wikipedia.Page(enwp,'User:VIAFbot/Conflict/13/' + str(archiveNum)).append(last100LogLinesAsString(conflict13log), comment='Logging', minorEdit=True, section=0) 
@@ -447,7 +447,7 @@ def writeEntireTemplate(validatedPage, viafnum):
     """Uses add_text.py to add the wikitext of
      {{Authority control}} template with the VIAF parameter"""
     ACtemplateWithVIAF = '\n{{Authority control|VIAF=' + str(viafnum) + '}}\n'
-    editSummary = 'Added the {{Authority control}} template with VIAF number ' + str(viafnum) + '.'
+    editSummary = 'Added the {{[[Template:Authority control|Authority control]]}} template with VIAF number ' + str(viafnum) + '.'
     try:
         add_text_customised.add_text(page = validatedPage, 
              addText = ACtemplateWithVIAF, 
@@ -475,7 +475,7 @@ def writeVIAFparamOnly2(validatedPage,viafnum):
                   allowoverlap=False, marker = '', site = enwp)
 
     try:
-        validatedPage.put(newtext = replacementText, comment = 'Added VIAF number ' + str(viafnum) + ' to {{Authority control}} temaplte.', watchArticle = False , minorEdit=True, force=False, sysop=False, botflag=True, maxTries = 5)
+        validatedPage.put(newtext = replacementText, comment = 'Added VIAF number ' + str(viafnum) + ' to {{[[Template:Authority control|Authority control]]}} template.', watchArticle = False , minorEdit=True, force=False, sysop=False, botflag=True, maxTries = 5)
     except exceptions.LockedPage:
         raise exceptions.LockedPage
     except exceptions.EditConflict:
