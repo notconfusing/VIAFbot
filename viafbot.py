@@ -418,15 +418,15 @@ def logOnWiki(casenum, validatedPage, viafnum):
                 wikipedia.Page(enwp,'User:VIAFbot/Conflict/13/' + str(archiveNum)).append(last100LogLinesAsString(conflict13log), comment='Logging', minorEdit=True, section=0) 
             else: pass
     except exceptions.LockedPage:
-        viafbotrun.write(timestamp + validatedPage.title() + ' log page gave locked page error \n')
+        viafbotrun.write(timestamp + ' http://en.wikipedia.org/wiki/' +  validatedPage.title() + ' log page gave locked page error \n')
     except exceptions.PageNotSaved:
-        viafbotrun.write(timestamp + validatedPage.title() + ' log page gave page not saved error \n')
+        viafbotrun.write(timestamp + ' http://en.wikipedia.org/wiki/' +  validatedPage.title() + ' log page gave page not saved error \n')
     except exceptions.EditConflict:
-        viafbotrun.write(timestamp + validatedPage.title() + ' log page gave gave edit conflict error \n')
+        viafbotrun.write(timestamp + ' http://en.wikipedia.org/wiki/' +  validatedPage.title() + ' log page gave gave edit conflict error \n')
     except exceptions.SpamfilterError:
-        viafbotrun.write(timestamp + validatedPage.title() + ' log page gave spam filter error \n')
+        viafbotrun.write(timestamp + ' http://en.wikipedia.org/wiki/' +  validatedPage.title() + ' log page gave spam filter error \n')
     except exceptions.LongPageError:
-        viafbotrun.write(timestamp + validatedPage.title() + ' log page gave long page error \n')
+        viafbotrun.write(timestamp + ' http://en.wikipedia.org/wiki/' +  validatedPage.title() + ' log page gave long page error \n')
     
 def last100LogLinesAsString(logfile):
     """Retruns the last 100 (or remainder if log has less than 100 lines) of a log as string"""
@@ -458,7 +458,7 @@ def writeEntireTemplate(validatedPage, viafnum):
     except exceptions.EditConflict:
         raise exceptions.EditConflict
     except exceptions.ServerError:
-        viafbotrun.write("writeEntireTemplate on page " + validatedPage.title() + ' gave generic server error.\n')
+        viafbotrun.write("writeEntireTemplate on page " + 'http://en.wikipedia.org/wiki/' +  validatedPage.title() + ' gave generic server error.\n')
     except exceptions.SpamfilterError:
         raise exceptions.SpamfilterError
     except exceptions.PageNotSaved:
@@ -481,7 +481,7 @@ def writeVIAFparamOnly2(validatedPage,viafnum):
     except exceptions.EditConflict:
         raise exceptions.EditConflict
     except exceptions.ServerError:
-        viafbotrun.write("writeEntireTemplate on page " + validatedPage.title() + ' gave generic server error.\n')
+        viafbotrun.write("writeEntireTemplate on page " + 'http://en.wikipedia.org/wiki/' +  validatedPage.title() + ' gave generic server error.\n')
     except exceptions.SpamfilterError:
         raise exceptions.SpamfilterError
     except exceptions.PageNotSaved:
@@ -567,7 +567,7 @@ for wikilink in wikilinks:
     try:
         writeToWiki(validatedPage, acStatus, normdatenStatus, viafnum, writeAttempts=0)
     except exceptions.Error:
-        viafbotrun.write(validatedPage.title() + " was not written to wiki because of ac and nd status were not valid")#write to log
+        viafbotrun.write('http://en.wikipedia.org/wiki/' +  validatedPage.title() + " was not written to wiki because of ac and nd status were not valid")#write to log
     '''Write statistics onwiki every so often'''
     if (touched % 1000) == 0:
         writeStats()
