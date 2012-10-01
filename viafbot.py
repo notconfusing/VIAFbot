@@ -15,7 +15,7 @@ from time import gmtime, strftime #for timestamping
 enwp = wikipedia.getSite('en','wikipedia')
 dewp = wikipedia.getSite('de','wikipedia')
 #files
-wikilinksfile = open("35linksfortrial.out")#should be wikilinksforbot.out when real
+wikilinksfile = open("wikilinksforbot.out")#should be wikilinksforbot.out when real
 wikilinks = wikilinksfile.readlines()
 viafbotrun = open("viafbotrun.log", 'w+')
 NoDEWPlog = open("NoDEWP.log", 'w+')
@@ -61,8 +61,6 @@ normdatenVIAFcount = 0
                            
     #close resources
 wikilinksfile.close()
-
-
 
 
 
@@ -485,7 +483,9 @@ def writeVIAFparamOnly2(validatedPage,viafnum):
     except exceptions.SpamfilterError:
         raise exceptions.SpamfilterError
     except exceptions.PageNotSaved:
-        raise exceptions.PageNotSaved     
+        raise exceptions.PageNotSaved   
+    
+      
 def writeStats():
     wikipedia.Page(enwp,'User:VIAFbot/Stats').put(
         '{| class="wikitable"\n\
@@ -539,20 +539,34 @@ def writeStats():
         | Pages which VIAFbot touched that already had Normdaten template with VIAF parameter|| '+str(normdatenVIAFcount)+'\n\
         |}', 
         comment='Updating Stats', minorEdit=True)    
-        
+    
+def isDab(pageObject):
+    templates = pageObject.templatesWithParams()
+    for template in templates:
+        templateUpper = str(template[0]).upper()
+        if templateUpper == 'DAB' or templateUpper == 'DISAMBIGUATION':
+            return True
+    return False
+    
 #the main loop
 for wikilink in wikilinks:
     '''Load the article and number from file'''
     wikilink = wikilink.split() #to get the line into a list of (name, viafnum)
     unvalidatedPageName = wikilink[0]
     viafnum = int(wikilink[1])
-    touched = touched + 1
-    '''Find redirects or deletions, after all this file could be 6 months oout of date'''
+    touched = touched + 1 #how many wikilinks we've seen
+    
+    '''Find redirects, deletions and dabs, after all this file could be 6 months out of date'''
     try:
         validatedPage = pageValidate(unvalidatedPageName) #It's possible that the page doesn't exist
     except exceptions.NoPage:
         viafbotrun.write(unvalidatedPageName.title() + "did not exist, or redirected more than 10 times")
         continue  #If the page doesn't exist, then we don't need to write anything to the Wiki.
+    if isDab(validatedPage):
+        viafbotrun.write(validatedPage.title() + " was a disambiguation page \n")
+        continue
+    else: pass
+    
     '''get statuses of Authority Control and Normdaten templates'''
     acStatus = determineAuthorityControlTemplate(validatedPage)
     try:
@@ -563,16 +577,20 @@ for wikilink in wikilinks:
         normdatenStatus = determineNormdatenTemplate(germanPageName)
     else:
         normdatenStatus = 'noNormdatenTemplate' #if there's no page there's also noACtemplate either 
+    
     '''Write the viafnumber according to what we found from DEWP''' 
     try:
         writeToWiki(validatedPage, acStatus, normdatenStatus, viafnum, writeAttempts=0)
     except exceptions.Error:
         viafbotrun.write('http://en.wikipedia.org/wiki/' +  validatedPage.title() + " was not written to wiki because of ac and nd status were not valid")#write to log
+    
     '''Write statistics onwiki every so often'''
     if (touched % 1000) == 0:
         writeStats()
     else: pass
-
+    percentageComplete = touched / 2662.02 #the length of the wikilinks file divided by 100 so we can easily display as a percentage
+    print str(percentageComplete) + '% complete'
+    
 #close files
 wikilinksfile.close()
 viafbotrun.close()
