@@ -3,10 +3,11 @@
 # CC-BY-SA Max Klein and OCLC Research
 # importing modules
 # requires that pywikipediabot modules be in your PYTHONPATH
+#WARNING this uses a modified version of textlib that replaces once not for all occurences in writeEntireTemplate2
 import wikipedia
 import pywikibot.exceptions as exceptions
-import pywikibot.textlib as textlib
-import add_text_customised#for method writeEntireTemplate
+import pywikibot.textlib_customised as textlib
+import add_text_customised#for method writeEntireTemplate1
 #if using writeVIAFparamOnly not writeVIAFparamOnly2: 
 from time import gmtime, strftime #for timestamping
 
@@ -15,7 +16,7 @@ from time import gmtime, strftime #for timestamping
 enwp = wikipedia.getSite('en','wikipedia')
 dewp = wikipedia.getSite('de','wikipedia')
 #files
-wikilinksfile = open("wikilinksforbot.out")#should be wikilinksforbot.out when real
+wikilinksfile = open("wikilinksforbot2500a10.out")#should be wikilinksforbot.out when real
 wikilinks = wikilinksfile.readlines()
 viafbotrun = open("viafbotrun.log", 'w+')
 NoDEWPlog = open("NoDEWP.log", 'w+')
@@ -176,7 +177,7 @@ def writeToWiki(validatedPage, acStatus, normdatenStatus, viafnum, writeAttempts
     try:
         if (normdatenStatus == 'noNormdatenTemplate') or (normdatenStatus == 'templateNoVIAF'):
             if acStatus == 'noACtemplate':
-                writeEntireTemplate(validatedPage, viafnum)
+                writeEntireTemplate2(validatedPage, viafnum)
                 logOnWiki(1,validatedPage, viafnum)
             elif acStatus == 'templateNoVIAF':
                 writeVIAFparamOnly2(validatedPage,viafnum)
@@ -189,7 +190,7 @@ def writeToWiki(validatedPage, acStatus, normdatenStatus, viafnum, writeAttempts
         elif type(normdatenStatus)==int:
             if acStatus == 'noACtemplate':
                 if normdatenStatus == viafnum:
-                    writeEntireTemplate(validatedPage, viafnum)
+                    writeEntireTemplate2(validatedPage, viafnum)
                     logOnWiki(5, validatedPage, viafnum)
                 else:
                     logOnWiki(6, validatedPage, viafnum)
@@ -221,7 +222,7 @@ def writeToWiki(validatedPage, acStatus, normdatenStatus, viafnum, writeAttempts
         else: pass
         writeAttempts = writeAttempts + 1
         if writeAttempts <= 6:
-            writeToWiki(validatedPage, acStatus, normdatenStatus, writeAttempts)
+            writeToWiki(validatedPage, acStatus, normdatenStatus, viafnum, writeAttempts)
         else:
             lockedErrorlog.write('* ' + timestamp + ' . ' + validatedPage.title(asLink=True) + ' was locked.\n' )
             if lockedError % 100 == 99:
@@ -234,7 +235,7 @@ def writeToWiki(validatedPage, acStatus, normdatenStatus, viafnum, writeAttempts
         else: pass
         writeAttempts = writeAttempts + 1
         if writeAttempts <= 6:
-            writeToWiki(validatedPage, acStatus, normdatenStatus, writeAttempts)
+            writeToWiki(validatedPage, acStatus, normdatenStatus, viafnum, writeAttempts)
         else:
             pageNotSavedErrorlog.write('* ' + timestamp + ' . ' + validatedPage.title(asLink=True) + ' generic page not saved.\n' )
             if pageNotSavedError % 100 == 99:
@@ -247,7 +248,7 @@ def writeToWiki(validatedPage, acStatus, normdatenStatus, viafnum, writeAttempts
         else: pass
         writeAttempts = writeAttempts + 1
         if writeAttempts <= 6:
-            writeToWiki(validatedPage, acStatus, normdatenStatus, writeAttempts)
+            writeToWiki(validatedPage, acStatus, normdatenStatus, viafnum, writeAttempts)
         else:
             editConflictErrorlog.write('* ' + timestamp + ' . ' + validatedPage.title(asLink=True) + ' editconflict.\n')
             if editConflictError % 100 == 99:
@@ -260,7 +261,7 @@ def writeToWiki(validatedPage, acStatus, normdatenStatus, viafnum, writeAttempts
         else: pass
         writeAttempts = writeAttempts + 1
         if writeAttempts <= 6:
-            writeToWiki(validatedPage, acStatus, normdatenStatus, writeAttempts)
+            writeToWiki(validatedPage, acStatus, normdatenStatus, viafnum, writeAttempts)
         else:
             spamfilterErrorlog.write('* ' + timestamp + ' . ' + validatedPage.title(asLink=True) + ' did not pass spamfilter.\n')
             if spamfilterError % 100 == 99:
@@ -273,7 +274,7 @@ def writeToWiki(validatedPage, acStatus, normdatenStatus, viafnum, writeAttempts
         else: pass
         writeAttempts = writeAttempts + 1
         if writeAttempts <= 6:
-            writeToWiki(validatedPage, acStatus, normdatenStatus, writeAttempts)
+            writeToWiki(validatedPage, acStatus, normdatenStatus, viafnum, writeAttempts)
         else:
             longPageErrorlog.write('* ' + timestamp + ' . ' + validatedPage.title(asLink=True) + ' page too long error.\n')
             if longPageError % 100 == 99:
@@ -441,22 +442,59 @@ def last100LogLinesAsString(logfile):
 
     
         
-def writeEntireTemplate(validatedPage, viafnum):
+def writeEntireTemplate1(validatedPage, viafnum): #this is broken as of now because add_text is misleading
     """Uses add_text.py to add the wikitext of
      {{Authority control}} template with the VIAF parameter"""
-    ACtemplateWithVIAF = '\n{{Authority control|VIAF=' + str(viafnum) + '}}\n'
+    ACtemplateWithVIAF = '{{Authority control|VIAF=' + str(viafnum) + '}}'
     editSummary = 'Added the {{[[Template:Authority control|Authority control]]}} template with VIAF number ' + str(viafnum) + '.'
     try:
         add_text_customised.add_text(page = validatedPage, 
              addText = ACtemplateWithVIAF, 
-             always = True, #so add_text won't ask for confirmation
-             summary = editSummary)
+             always = False, #so add_text won't ask for confirmation
+             summary = editSummary,
+             #reorderEnabled = False # message between categories and interwikis problem attempts
+             )
     except exceptions.LockedPage:
         raise exceptions.LockedPage
     except exceptions.EditConflict:
         raise exceptions.EditConflict
     except exceptions.ServerError:
-        viafbotrun.write("writeEntireTemplate on page " + 'http://en.wikipedia.org/wiki/' +  validatedPage.title() + ' gave generic server error.\n')
+        viafbotrun.write("writeEntireTemplate2 on page " + 'http://en.wikipedia.org/wiki/' +  validatedPage.title() + ' gave generic server error.\n')
+    except exceptions.SpamfilterError:
+        raise exceptions.SpamfilterError
+    except exceptions.PageNotSaved:
+        raise exceptions.PageNotSaved
+    
+def writeEntireTemplate2(validatedPage, viafnum):
+    """Uses the textlib method replaceExcept"""
+
+    pageWikiText = validatedPage.get()
+    
+    replacementText = textlib.replaceExcept(pageWikiText, '{{Persondata' , '{{Authority control|VIAF=' + str(viafnum) + '}}' + '\n' + '{{Persondata', exceptions=[], caseInsensitive=True,
+                  allowoverlap=False, marker = '', site = enwp)
+    
+    #if we didn't make a change
+    if not "Authority control" in replacementText:
+        replacementText = textlib.replaceExcept(pageWikiText, '{{DEFAULTSORT' , '{{Authority control|VIAF=' + str(viafnum) + '}}' + '\n' + '{{DEFAULTSORT', exceptions=[], caseInsensitive=True,
+                  allowoverlap=False, marker = '', site = enwp)
+        
+    #if we didn't make a change yet
+    if not "Authority control" in replacementText:
+        replacementText = textlib.replaceExcept(pageWikiText, '\[\[Category' , '{{Authority control|VIAF=' + str(viafnum) + '}}' +'\n' + '[[Category', exceptions=[], caseInsensitive=True,
+                  allowoverlap=False, marker = '', site = enwp)
+    #if there's no category then just log
+    
+    viafbotrun.write("writeEntireTemplate2 on page " + 'http://en.wikipedia.org/wiki/' +  validatedPage.title() + ' had no persondata category or defaultsort.\n')
+    
+    try:
+        validatedPage.put(newtext = replacementText, comment = 'Added the {{[[Template:Authority control|Authority control]]}} template with VIAF number ' + str(viafnum) + '.', 
+                          watchArticle = False , minorEdit=True, force=False, sysop=False, botflag=True, maxTries = 5)
+    except exceptions.LockedPage:
+        raise exceptions.LockedPage
+    except exceptions.EditConflict:
+        raise exceptions.EditConflict
+    except exceptions.ServerError:
+        viafbotrun.write("writeEntireTemplate2 on page " + 'http://en.wikipedia.org/wiki/' +  validatedPage.title() + ' gave generic server error.\n')
     except exceptions.SpamfilterError:
         raise exceptions.SpamfilterError
     except exceptions.PageNotSaved:
@@ -479,7 +517,7 @@ def writeVIAFparamOnly2(validatedPage,viafnum):
     except exceptions.EditConflict:
         raise exceptions.EditConflict
     except exceptions.ServerError:
-        viafbotrun.write("writeEntireTemplate on page " + 'http://en.wikipedia.org/wiki/' +  validatedPage.title() + ' gave generic server error.\n')
+        viafbotrun.write("writeEntireTemplate2 on page " + 'http://en.wikipedia.org/wiki/' +  validatedPage.title() + ' gave generic server error.\n')
     except exceptions.SpamfilterError:
         raise exceptions.SpamfilterError
     except exceptions.PageNotSaved:
@@ -609,3 +647,5 @@ editConflictErrorlog.close()
 pageNotSavedErrorlog.close()
 spamfilterErrorlog.close()
 longPageErrorlog.close()
+
+print "VIAFbot says: I'm spent"
