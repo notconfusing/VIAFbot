@@ -11,12 +11,11 @@ import add_text_customised#for method writeEntireTemplate1
 #if using writeVIAFparamOnly not writeVIAFparamOnly2: 
 from time import gmtime, strftime #for timestamping
 
- 
 #wikipedia site  variables
 enwp = wikipedia.getSite('en','wikipedia')
 dewp = wikipedia.getSite('de','wikipedia')
 #files
-wikilinksfile = open("wikilinksforbot2500a10.out")#should be wikilinksforbot.out when real
+wikilinksfile = open("wikilinksforbot2500b.out")#should be wikilinksforbot.out when real
 wikilinks = wikilinksfile.readlines()
 viafbotrun = open("viafbotrun.log", 'w+')
 NoDEWPlog = open("NoDEWP.log", 'w+')
@@ -470,14 +469,18 @@ def writeEntireTemplate2(validatedPage, viafnum):
 
     pageWikiText = validatedPage.get()
     
-    replacementText = textlib.replaceExcept(pageWikiText, '{{Persondata' , '{{Authority control|VIAF=' + str(viafnum) + '}}' + '\n' + '{{Persondata', exceptions=[], caseInsensitive=True,
+    replacementText = textlib.replaceExcept(pageWikiText, '<!-- Metadata: see \[\[Wikipedia:Persondata\]\] -->' , '{{Authority control|VIAF=' + str(viafnum) + '}}' + '\n' + '<!-- Metadata: see [[Wikipedia:Persondata]] -->', exceptions=[], caseInsensitive=True,
+                  allowoverlap=False, marker = '', site = enwp)
+    
+    if not "Authority control" in replacementText:
+        replacementText = textlib.replaceExcept(pageWikiText, '{{Persondata' , '{{Authority control|VIAF=' + str(viafnum) + '}}' + '\n' + '{{Persondata', exceptions=[], caseInsensitive=True,
                   allowoverlap=False, marker = '', site = enwp)
     
     #if we didn't make a change
     if not "Authority control" in replacementText:
         replacementText = textlib.replaceExcept(pageWikiText, '{{DEFAULTSORT' , '{{Authority control|VIAF=' + str(viafnum) + '}}' + '\n' + '{{DEFAULTSORT', exceptions=[], caseInsensitive=True,
                   allowoverlap=False, marker = '', site = enwp)
-        
+
     #if we didn't make a change yet
     if not "Authority control" in replacementText:
         replacementText = textlib.replaceExcept(pageWikiText, '\[\[Category' , '{{Authority control|VIAF=' + str(viafnum) + '}}' +'\n' + '[[Category', exceptions=[], caseInsensitive=True,
